@@ -1,0 +1,22 @@
+/* Sender name in group chat */
+.message-sender {
+  font-size: 11px;
+  margin-bottom: 2px;
+  font-weight: 600;
+  color: var(--text-color);
+  opacity: 0.8;
+}
+
+[data-theme="dark"] .message-sender {
+  color: #ddd;
+}
+
+/* Adjust message card content spacing */
+.mc-receiver .message-card-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.mc-receiver .message {
+  border-top-left-radius: 2px;
+}

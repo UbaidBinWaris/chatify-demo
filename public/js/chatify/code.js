@@ -728,9 +728,16 @@ document.addEventListener("visibilitychange", handleVisibilityChange, false);
  *-------------------------------------------------------------
  */
 function isTyping(status) {
+  const messengerId = getMessengerId();
+  
+  // Don't send client events for groups (they aren't supported yet)
+  if (messengerId && messengerId.toString().startsWith('group_')) {
+    return;
+  }
+  
   return clientSendChannel.trigger("client-typing", {
     from_id: auth_id, // Me
-    to_id: getMessengerId(), // Messenger
+    to_id: messengerId, // Messenger
     typing: status,
   });
 }
@@ -744,20 +751,35 @@ function makeSeen(status) {
   if (document?.hidden) {
     return;
   }
+  
+  const messengerId = getMessengerId();
+  
+  // Don't send client events for groups (they aren't supported yet)
+  if (messengerId && messengerId.toString().startsWith('group_')) {
+    // Only do server-side seen for groups
+    $.ajax({
+      url: url + "/makeSeen",
+      method: "POST",
+      data: { _token: csrfToken, id: messengerId },
+      dataType: "JSON",
+    });
+    return;
+  }
+  
   // remove unseen counter for the user from the contacts list
-  $(".messenger-list-item[data-contact=" + getMessengerId() + "]")
+  $(".messenger-list-item[data-contact=" + messengerId + "]")
     .find("tr>td>b")
     .remove();
   // seen
   $.ajax({
     url: url + "/makeSeen",
     method: "POST",
-    data: { _token: csrfToken, id: getMessengerId() },
+    data: { _token: csrfToken, id: messengerId },
     dataType: "JSON",
   });
   return clientSendChannel.trigger("client-seen", {
     from_id: auth_id, // Me
-    to_id: getMessengerId(), // Messenger
+    to_id: messengerId, // Messenger
     seen: status,
   });
 }

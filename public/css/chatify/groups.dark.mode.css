@@ -1,0 +1,134 @@
+/* Dark mode overrides for Groups */
+
+:root {
+  --listView-header-height: 165px;
+}
+
+/* Header background in dark mode */
+.messenger-listView .m-header,
+.messenger-listView-tabs {
+  background: var(--dark-primary-bg-color) !important;
+}
+
+.messenger-listView-tabs a {
+  color: #888;
+}
+
+.messenger-listView-tabs a.active-tab {
+  color: var(--primary-color);
+  background: linear-gradient(to top, rgba(255,255,255,0.02), transparent);
+}
+
+.messenger-listView-tabs a:hover {
+  background: rgba(255,255,255,0.02);
+}
+
+/* Search input in dark mode */
+.messenger-search[type="text"] {
+  background: var(--dark-secondary-bg-color) !important;
+  color: #fff !important;
+  border: 1px solid var(--dark-border-color) !important;
+}
+
+.messenger-search[type="text"]::placeholder {
+  color: #999 !important;
+}
+
+/* Messenger title in groups tab */
+.groups-tab .messenger-title {
+  color: #dbdbdb !important;
+}
+
+.groups-tab .messenger-title span {
+  color: #dbdbdb !important;
+  background-color: var(--dark-primary-bg-color);
+}
+
+/* Group list items */
+.group-list-item {
+  border-bottom-color: var(--dark-border-color);
+}
+
+.group-list-item:hover {
+  background: var(--dark-secondary-bg-color);
+}
+
+.group-name {
+  color: #fff;
+}
+
+.group-members-count {
+  color: #999;
+}
+
+/* Create group button dark mode */
+#create-group-btn:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Form controls */
+.form-group label {
+  color: #fff;
+}
+
+.form-control {
+  background: var(--dark-secondary-bg-color);
+  border-color: var(--dark-border-color);
+  color: #fff;
+}
+
+.form-control::placeholder {
+  color: #999;
+}
+
+/* Selected members */
+.selected-member {
+  background: #1e3a5f;
+  color: #64b5f6;
+}
+
+.remove-member {
+  color: #64b5f6;
+}
+
+/* Search results */
+.search-results-container,
+.selected-members-container {
+  background: var(--dark-secondary-bg-color);
+  border-color: var(--dark-border-color);
+}
+
+.search-result-item {
+  color: #fff;
+  border-bottom-color: var(--dark-border-color);
+}
+
+.search-result-item:hover {
+  background: var(--dark-secondary-bg-color);
+}
+
+/* Empty state message */
+.listOfGroups .message-hint span {
+  background: var(--dark-message-hint-bg-color);
+  color: var(--dark-message-hint-color);
+}
+
+/* Modal dark mode */
+.modal-content {
+  background: var(--dark-modal-bg-color);
+  color: #fff;
+}
+
+.modal-header {
+  border-bottom-color: var(--dark-border-color);
+}
+
+/* Cancel button in dark mode */
+.btn-cancel {
+  background: var(--dark-secondary-bg-color);
+  color: #fff;
+}
+
+.btn-cancel:hover {
+  background: var(--dark-border-color);
+}

@@ -1,0 +1,358 @@
+/* Override header height to accommodate tabs */
+:root {
+  --listView-header-height: 165px;
+}
+
+/* Tab layout fixes */
+.messenger-listView-tabs {
+  display: flex !important;
+  flex-wrap: nowrap;
+  width: 100%;
+  padding-bottom: 5px;
+  background: var(--primary-bg-color);
+}
+
+.messenger-listView .m-header {
+  height: auto !important;
+  min-height: var(--listView-header-height);
+  display: flex;
+  flex-direction: column;
+  background: var(--primary-bg-color);
+  padding-bottom: 0px !important;
+}
+
+/* Fix content overlap */
+.messenger-tab {
+  height: calc(100vh - var(--listView-header-height) - 10px);
+}
+
+.messenger-listView-tabs a {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+  padding: 12px 0;
+  color: var(--text-color, #777);
+  font-weight: 500;
+  border-bottom: 3px solid transparent;
+}
+
+.messenger-listView-tabs a.active-tab {
+  border-bottom: 3px solid var(--primary-color);
+  color: var(--primary-color);
+  background: linear-gradient(to top, rgba(0,0,0,0.02), transparent);
+}
+
+.messenger-listView-tabs a:hover {
+  background: rgba(0,0,0,0.02);
+}
+
+/* Search input visibility fixes */
+.messenger-search[type="text"] {
+  background: var(--secondary-bg-color) !important;
+  color: var(--text-color, #333) !important;
+  border: 1px solid var(--border-color) !important;
+  margin: 10px 10px !important;
+  width: calc(100% - 20px) !important;
+}
+
+.messenger-search[type="text"]::placeholder {
+  color: #999 !important;
+  opacity: 1 !important;
+}
+
+/* Dark mode search input */
+[data-theme="dark"] .messenger-search[type="text"] {
+  background: var(--dark-secondary-bg-color) !important;
+  color: #fff !important;
+  border: 1px solid var(--dark-border-color) !important;
+}
+
+[data-theme="dark"] .messenger-search[type="text"]::placeholder {
+  color: #999 !important;
+}
+
+/* Create group button styling */
+#create-group-btn {
+  background: var(--primary-color) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+#create-group-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+#create-group-btn i {
+  font-size: 14px;
+}
+
+/* Messenger title styling */
+.groups-tab .messenger-title {
+  color: var(--text-color, #333);
+  padding: 15px;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .groups-tab .messenger-title {
+  color: #fff;
+}
+
+[data-theme="dark"] .groups-tab .messenger-title span {
+  color: #fff;
+}
+
+/* Group-specific styles */
+.messenger-tab.show {
+  display: block;
+}
+
+.group-list-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 15px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-color);
+  transition: background 0.2s;
+}
+
+.group-list-item:hover {
+  background: var(--secondary-bg-color);
+}
+
+.group-avatar {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  margin-right: 12px;
+  background: var(--primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.group-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.group-name {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text-color);
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.group-members-count {
+  font-size: 12px;
+  color: #888;
+}
+
+/* Modal styles */
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.form-control {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 14px;
+  background: var(--primary-bg-color);
+  color: var(--text-color);
+  box-sizing: border-box;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+}
+
+.btn-primary {
+  background: var(--primary-color);
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.btn-cancel {
+  background: var(--secondary-bg-color);
+  color: var(--text-color);
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-right: 10px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.btn-cancel:hover {
+  background: var(--border-color);
+}
+
+.selected-member {
+  display: inline-block;
+  background: #e3f2fd;
+  padding: 6px 12px;
+  margin: 4px;
+  border-radius: 16px;
+  font-size: 13px;
+  color: #1976d2;
+}
+
+.selected-member .remove-member {
+  margin-left: 8px;
+  cursor: pointer;
+  color: #f44336;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.selected-member .remove-member:hover {
+  color: #d32f2f;
+}
+
+.search-results-container {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--primary-bg-color);
+  margin-top: 5px;
+}
+
+.search-result-item {
+  padding: 12px 15px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-color);
+  transition: background 0.2s;
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.search-result-item:hover {
+  background: var(--secondary-bg-color);
+}
+
+.selected-members-container {
+  min-height: 40px;
+  padding: 5px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--secondary-bg-color);
+}
+
+.message-sender {
+  font-size: 12px;
+  color: var(--primary-color);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+/* Dark mode adjustments */
+.group-list-item {
+  border-bottom-color: var(--border-color);
+}
+
+.group-list-item:hover {
+  background: var(--secondary-bg-color);
+}
+
+.group-name {
+  color: var(--text-color, #333);
+}
+
+.group-members-count {
+  color: #999;
+}
+
+[data-theme="dark"] .group-name,
+[data-theme="dark"] .form-group label,
+[data-theme="dark"] .form-control {
+  color: #fff;
+}
+
+[data-theme="dark"] .group-list-item {
+  border-bottom-color: var(--dark-border-color);
+}
+
+[data-theme="dark"] .group-list-item:hover {
+  background: var(--dark-secondary-bg-color);
+}
+
+[data-theme="dark"] .group-members-count {
+  color: #999;
+}
+
+[data-theme="dark"] .form-control {
+  background: var(--dark-secondary-bg-color);
+  border-color: var(--dark-border-color);
+}
+
+[data-theme="dark"] .selected-member {
+  background: #1e3a5f;
+  color: #64b5f6;
+}
+
+[data-theme="dark"] .search-results-container,
+[data-theme="dark"] .selected-members-container {
+  background: var(--dark-secondary-bg-color);
+  border-color: var(--dark-border-color);
+}
+
+[data-theme="dark"] .message-hint span {
+  color: #fff;
+}
+
+/* Create group button styling */
+#create-group-btn {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+/* Empty state */
+.listOfGroups p.message-hint {
+  padding: 40px 20px;
+  text-align: center;
+}

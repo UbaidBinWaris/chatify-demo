@@ -41,4 +41,14 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    /**
+     * Get the groups the user belongs to
+     */
+    public function groups()
+    {
+        return $this->belongsToMany(Group::class, 'group_members', 'user_id', 'group_id')
+                    ->withPivot('role')
+                    ->withTimestamps();
+    }
 }

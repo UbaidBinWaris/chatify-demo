@@ -15,10 +15,14 @@
             {{-- Search input --}}
             <input type="text" class="messenger-search" placeholder="Search" />
             {{-- Tabs --}}
-            {{-- <div class="messenger-listView-tabs">
+            <div class="messenger-listView-tabs">
                 <a href="#" class="active-tab" data-view="users">
-                    <span class="far fa-user"></span> Contacts</a>
-            </div> --}}
+                    <span class="far fa-user"></span> Contacts
+                </a>
+                <a href="#" data-view="groups">
+                    <span class="fas fa-users"></span> Groups
+                </a>
+            </div>
         </div>
         {{-- tabs and lists --}}
         <div class="m-body contacts-container">
@@ -44,6 +48,16 @@
                 <div class="search-records">
                     <p class="message-hint center-el"><span>Type to search..</span></p>
                 </div>
+             </div>
+             {{-- ---------------- [ Groups Tab ] ---------------- --}}
+           <div class="messenger-tab groups-tab app-scroll" data-view="groups">
+                <div style="padding: 10px; text-align: center;">
+                    <button id="create-group-btn" class="btn-primary" style="width: 100%; padding: 0px 10px; height: 35px;">
+                        <i class="fas fa-plus"></i> Create New Group
+                    </button>
+                </div>
+                <p class="messenger-title"><span>My Groups</span></p>
+                <div class="listOfGroups" style="width: 100%;"></div>
              </div>
         </div>
     </div>
@@ -109,4 +123,5 @@
 </div>
 
 @include('Chatify::layouts.modals')
+@include('Chatify::layouts.groupModals')
 @include('Chatify::layouts.footerLinks')
