@@ -33,6 +33,16 @@ class GroupController extends Controller
                 $lastMsg = $group->latestMessage;
                 $senderName = $lastMsg && $lastMsg->from ? ($lastMsg->from->id == Auth::id() ? 'You' : $lastMsg->from->name) : '';
                 
+                // Safe message preview
+                $messagePreview = null;
+                if ($lastMsg) {
+                    if ($lastMsg->attachment) {
+                        $messagePreview = 'Attachment';
+                    } elseif ($lastMsg->body) {
+                        $messagePreview = Str::limit($lastMsg->body, 30);
+                    }
+                }
+                
                 return [
                     'id' => $group->id,
                     'name' => $group->name,
@@ -41,10 +51,8 @@ class GroupController extends Controller
                     'created_by' => $group->creator->name,
                     'members_count' => $group->members->count(),
                     'created_at' => $group->created_at->diffForHumans(),
-                    'last_message' => $lastMsg ? 
-                        ($lastMsg->attachment ? 'Attachment' : Str::words($lastMsg->body, 4, '..')) 
-                        : null,
-                    'last_message_time' => $lastMsg ? $lastMsg->created_at->diffForHumans() : '',
+                    'last_message' => $messagePreview,
+                    'last_message_time' => $lastMsg ? $lastMsg->created_at->diffForHumans() : null,
                     'last_message_sender' => $senderName
                 ];
             })

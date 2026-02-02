@@ -37,7 +37,7 @@ function groupListItem(group) {
     const initials = group.name.substring(0, 2).toUpperCase();
     const lastMessage = group.last_message || `${group.members_count} members`;
     const lastMessageSender = group.last_message_sender || '';
-    const lastMessageTime = group.last_message_time || '';
+    const lastMessageTime = (group.last_message_time && group.last_message_time !== 'null') ? group.last_message_time : '';
     
     return `
     <table class="messenger-list-item group-list-item" data-group-id="${group.id}">
@@ -181,10 +181,25 @@ function createGroup(formData) {
 /**
  * Open group chat
  */
+let isOpeningGroup = false;
 function openGroupChat(groupId) {
+    // Prevent multiple simultaneous opens
+    if (isOpeningGroup) {
+        console.log('Already opening a group, skipping...');
+        return;
+    }
+    
+    isOpeningGroup = true;
     console.log('Opening group chat:', groupId);
     currentGroupId = groupId;
-    setMessengerId('group_' + groupId);
+    const groupMessengerId = 'group_' + groupId;
+    setMessengerId(groupMessengerId);
+    
+    // Update URL
+    const chatifyUrl = $("meta[name=url]").attr("content");
+    if (chatifyUrl && window.history) {
+        window.history.pushState({}, document.title, `${chatifyUrl}/${groupMessengerId}`);
+    }
     
     // Ensure messaging view is visible first
     $('.messenger-messagingView').css('display', 'flex').show();
@@ -197,6 +212,11 @@ function openGroupChat(groupId) {
     if($(window).width() < 768) {
         $('.messenger-listView').hide();
     }
+    
+    // Reset the flag after a short delay
+    setTimeout(() => {
+        isOpeningGroup = false;
+    }, 500);
 }
 
 /**
@@ -207,6 +227,10 @@ function loadGroupInfo(groupId) {
         url: `/groups/${groupId}`,
         method: 'GET',
         success: function(data) {
+            if (!data || !data.group) {
+                console.error('Group data not found');
+                return;
+            }
             const group = data.group;
             const initials = group.name.substring(0, 2).toUpperCase();
             
@@ -224,8 +248,16 @@ function loadGroupInfo(groupId) {
             $('.messenger-infoView nav p').text('Group Details');
             $('.messenger-infoView .avatar').html(`<div class="group-avatar">${initials}</div>`);
             
+            // Show info view sections
+            $('.messenger-infoView-btns .delete-conversation').show();
+            $('.messenger-infoView-shared').show();
+            
             // Show messaging view and ensure it's visible
             $('.messenger-messagingView').css('display', 'flex').show();
+            
+            // Enable message input
+            $('#message-form .m-send').removeAttr('readonly');
+            $('.messenger-sendCard button').prop('disabled', false);
         },
         error: function(xhr) {
             console.error('Failed to load group info:', xhr);
@@ -239,33 +271,71 @@ function loadGroupInfo(groupId) {
 function loadGroupMessages(groupId) {
     const messagesElement = messagesContainer.find('.messages');
     
+    console.log('[DEBUG] loadGroupMessages called for group:', groupId);
+    console.log('[DEBUG] messagesElement exists:', messagesElement.length > 0);
+    console.log('[DEBUG] messagesContainer visibility:', messagesContainer.is(':visible'));
+    
     // Clear existing messages first
     messagesElement.html('');
+    console.log('[DEBUG] Cleared messages container');
     
     $.ajax({
         url: `/groups/${groupId}/messages`,
         method: 'GET',
         success: function(data) {
-            console.log('Group messages loaded:', data);
+            console.log('[DEBUG] Group messages received:', data);
+            console.log('[DEBUG] Message count:', data.messages ? data.messages.length : 0);
             
             if (data.messages && data.messages.length > 0) {
                 let messagesHtml = '';
-                data.messages.forEach(function(msg) {
+                data.messages.forEach(function(msg, index) {
+                    console.log(`[DEBUG] Processing message ${index}:`, msg);
                     const isOwn = msg.from_id == auth_id;
                     messagesHtml += groupMessageCard(msg, isOwn);
                 });
+                
+                console.log('[DEBUG] Setting messages HTML, length:', messagesHtml.length);
                 messagesElement.html(messagesHtml);
+                
+                console.log('[DEBUG] Messages HTML set, checking DOM...');
+                console.log('[DEBUG] Message cards in DOM:', messagesElement.find('.message-card').length);
                 
                 // Ensure messages are visible
                 setTimeout(function() {
+                    console.log('[DEBUG] After timeout - messages still in DOM:', messagesElement.find('.message-card').length);
+                    console.log('[DEBUG] messagesContainer display:', messagesContainer.css('display'));
+                    console.log('[DEBUG] messagesElement display:', messagesElement.css('display'));
                     scrollToBottom(messagesContainer);
                 }, 100);
+                
+                // Add mutation observer to detect if messages are being removed
+                const observer = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        if (mutation.type === 'childList') {
+                            console.log('[DEBUG] DOM mutation detected in messages container:', mutation);
+                            console.log('[DEBUG] Nodes removed:', mutation.removedNodes.length);
+                            console.log('[DEBUG] Nodes added:', mutation.addedNodes.length);
+                        }
+                    });
+                });
+                
+                observer.observe(messagesElement[0], { 
+                    childList: true, 
+                    subtree: true 
+                });
+                
+                // Disconnect observer after 5 seconds
+                setTimeout(() => observer.disconnect(), 5000);
+                
             } else {
                 messagesElement.html('<p class="message-hint center-el"><span>No messages yet</span></p>');
+                console.log('[DEBUG] No messages, showing hint');
             }
         },
         error: function(xhr) {
-            console.error('Failed to load group messages:', xhr);
+            console.error('[ERROR] Failed to load group messages:', xhr);
+            console.error('[ERROR] Status:', xhr.status);
+            console.error('[ERROR] Response:', xhr.responseText);
             messagesElement.html('<p class="message-hint center-el"><span>Failed to load messages</span></p>');
         }
     });

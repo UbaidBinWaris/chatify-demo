@@ -369,6 +369,14 @@ function errorMessageCard(id) {
  *-------------------------------------------------------------
  */
 function IDinfo(id) {
+  // Don't run standard IDinfo for groups - they have their own info loading
+  if (id && id.toString().startsWith('group_')) {
+    console.log('Skipping standard IDinfo for group:', id);
+    // Still enable the message form for groups
+    disableOnLoad(false);
+    return;
+  }
+  
   // clear temporary message id
   temporaryMsgId = 0;
   // clear typing now
@@ -537,6 +545,12 @@ function setMessagesLoading(loading = false) {
   messagesLoading = loading;
 }
 function fetchMessages(id, newFetch = false) {
+  // Don't fetch messages for groups - they have their own loading mechanism
+  if (id && id.toString().startsWith('group_')) {
+    console.log('Skipping standard fetchMessages for group:', id);
+    return;
+  }
+  
   if (newFetch) {
     messagesPage = 1;
     noMoreMessages = false;
@@ -1315,10 +1329,19 @@ $(document).ready(function () {
 
   // set item active on click
   $("body").on("click", ".messenger-list-item", function () {
+    // Skip if this is a group item (handled by groups.js)
+    if ($(this).hasClass('group-list-item')) {
+      return;
+    }
+    
     $(".messenger-list-item").removeClass("m-list-active");
     $(this).addClass("m-list-active");
     const userID = $(this).attr("data-contact");
-    routerPush(document.title, `${url}/${userID}`);
+    
+    // Only push route if userID is valid
+    if (userID && userID !== 'undefined') {
+      routerPush(document.title, `${url}/${userID}`);
+    }
     updateSelectedContact(userID);
   });
 
