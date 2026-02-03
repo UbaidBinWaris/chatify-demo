@@ -51,7 +51,8 @@ function groupListItem(group) {
                 <td>
                     <p data-id="${group.id}" data-type="group">
                         ${group.name}
-                        <span class="contact-item-time" data-time="${lastMessageTime}">${lastMessageTime ? dateStringToTimeAgo(lastMessageTime) : ''}</span>
+                        <!-- Temporarily hidden: Time display causing NaN issue -->
+                        <!-- <span class="contact-item-time" data-time="${lastMessageTime}">${lastMessageTime ? dateStringToTimeAgo(lastMessageTime) : ''}</span> -->
                     </p>
                     <span>
                         ${lastMessageSender ? `<span class="lastMessageIndicator">${lastMessageSender}</span>` : ''}
@@ -185,15 +186,16 @@ let isOpeningGroup = false;
 function openGroupChat(groupId) {
     // Prevent multiple simultaneous opens
     if (isOpeningGroup) {
-        console.log('Group chat already opening, skipping...');
         return;
     }
     
-    console.log('Opening group chat:', groupId);
     isOpeningGroup = true;
     currentGroupId = groupId;
     const groupMessengerId = 'group_' + groupId;
     setMessengerId(groupMessengerId);
+    
+    // Clear unread count for this group
+    clearGroupUnreadCount(groupId);
     
     // Update URL
     const chatifyUrl = $("meta[name=url]").attr("content");
@@ -202,17 +204,14 @@ function openGroupChat(groupId) {
     }
     
     // Ensure messaging view is visible first and stays visible
-    console.log('Showing messaging view...');
     $('.messenger-messagingView').css('display', 'flex').show();
     
     // Enable message input for groups (prevent disable)
-    console.log('Enabling message input...');
     $('#message-form .m-send').removeAttr('readonly').removeAttr('disabled');
     $('.messenger-sendCard button').prop('disabled', false);
     $('.messenger-sendCard').show();
     
     // Then load info and messages
-    console.log('Loading group info and messages...');
     loadGroupInfo(groupId);
     loadGroupMessages(groupId);
     
@@ -224,7 +223,6 @@ function openGroupChat(groupId) {
     // Reset the flag after a short delay
     setTimeout(() => {
         isOpeningGroup = false;
-        console.log('Group chat opened successfully');
     }, 500);
 }
 
@@ -232,12 +230,10 @@ function openGroupChat(groupId) {
  * Load group info
  */
 function loadGroupInfo(groupId) {
-    console.log('loadGroupInfo called for group:', groupId);
     $.ajax({
         url: `/groups/${groupId}`,
         method: 'GET',
         success: function(data) {
-            console.log('Group info loaded:', data);
             if (!data || !data.group) {
                 console.error('Group data not found');
                 return;
@@ -275,7 +271,7 @@ function loadGroupInfo(groupId) {
             $('#message-form .m-send').focus();
         },
         error: function(xhr) {
-            console.error('Failed to load group info:', xhr);
+            // Handle error silently
         }
     });
 }
@@ -284,7 +280,6 @@ function loadGroupInfo(groupId) {
  * Load group messages
  */
 function loadGroupMessages(groupId) {
-    console.log('loadGroupMessages called for group:', groupId);
     const messagesElement = messagesContainer.find('.messages');
     
     // Clear existing messages first
@@ -317,7 +312,6 @@ function loadGroupMessages(groupId) {
             }
         },
         error: function(xhr) {
-            console.error('Failed to load group messages:', xhr);
             messagesElement.html('<p class="message-hint center-el"><span>Failed to load messages</span></p>');
         }
     });
@@ -387,7 +381,6 @@ function sendGroupMessage() {
         
         // Handle voice recording
         if (hasVoiceRecording && window.voiceRecorder) {
-            console.log('Adding voice recording to group message');
             const audioFile = window.voiceRecorder.getRecordedAudioFile();
             if (audioFile) {
                 formData.set('attachment', audioFile);
@@ -421,17 +414,14 @@ function sendGroupMessage() {
                 }
             },
             success: function(response) {
-                console.log('Group message sent:', response);
                 if (response.success) {
                     messagesContainer.find('.messages').append(
                         groupMessageCard(response.message, true)
                     );
                     scrollToBottom(messagesContainer);
-                    // Note: Notification sound only plays for RECEIVED messages, not sent ones
                 }
             },
             error: function(xhr, status, error) {
-                console.error('Failed to send group message:', error);
                 alert('Failed to send message');
             }
         });
@@ -524,3 +514,43 @@ $(document).ready(function() {
         });
     }, 30000);
 });
+
+/**
+ * Group unread message counter
+ */
+const groupUnreadCounts = {};
+
+function incrementGroupUnreadCount(groupId) {
+    if (!groupUnreadCounts[groupId]) {
+        groupUnreadCounts[groupId] = 0;
+    }
+    groupUnreadCounts[groupId]++;
+    updateGroupUnreadBadge(groupId);
+}
+
+function clearGroupUnreadCount(groupId) {
+    groupUnreadCounts[groupId] = 0;
+    updateGroupUnreadBadge(groupId);
+}
+
+function updateGroupUnreadBadge(groupId) {
+    const count = groupUnreadCounts[groupId] || 0;
+    const groupListItem = $(`.group-list-item[data-group-id="${groupId}"]`);
+    
+    if (groupListItem.length > 0) {
+        // Remove existing badge
+        groupListItem.find('tr > td > b').remove();
+        
+        if (count > 0) {
+            // Add badge with count
+            const displayCount = count > 99 ? '99+' : count;
+            groupListItem.find('tr > td:last-child').append(
+                `<b>${displayCount}</b>`
+            );
+        }
+    }
+}
+
+// Make functions globally accessible for Pusher event handler
+window.incrementGroupUnreadCount = incrementGroupUnreadCount;
+window.clearGroupUnreadCount = clearGroupUnreadCount;

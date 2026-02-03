@@ -266,13 +266,7 @@ class GroupController extends Controller
                     'useTLS' => config('chatify.pusher.options.encrypted', true)
                 ]
             );
-            
-            \Log::info('Broadcasting group message', [
-                'group_id' => $group->id,
-                'from_id' => $message->from_id,
-                'member_count' => $group->members->count(),
-                'pusher_app_id' => config('chatify.pusher.app_id')
-            ]);
+
 
             // Generate message card HTML directly (not using Blade template to avoid $seen variable error)
             $messageCard = $this->generateGroupMessageHtml($message, false);
@@ -280,12 +274,6 @@ class GroupController extends Controller
             // Broadcast to each group member
             foreach ($group->members as $member) {
                 if ($member->id !== Auth::id()) { // Don't send to sender
-                    \Log::info('Sending Pusher event to member', [
-                        'channel' => 'private-chatify.' . $member->id,
-                        'event' => 'messaging',
-                        'group_id' => $group->id
-                    ]);
-                    
                     $pusher->trigger(
                         'private-chatify.' . $member->id,
                         'messaging',

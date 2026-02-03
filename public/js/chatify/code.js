@@ -321,10 +321,8 @@ function disableOnLoad(disable = true) {
   // Don't disable if we're in a group chat
   const messengerId = getMessengerId();
   if (messengerId && messengerId.toString().startsWith('group_')) {
-    console.log('disableOnLoad: Skipping for group chat:', messengerId);
     return;
   }
-  console.log('disableOnLoad called:', disable, 'for:', messengerId);
   if (disable) {
     // hide star button
     $(".add-to-favorite").hide();
@@ -376,10 +374,8 @@ function errorMessageCard(id) {
  *-------------------------------------------------------------
  */
 function IDinfo(id) {
-  console.log('IDinfo called for:', id);
   // Don't run standard IDinfo for groups - they have their own info loading
   if (id && id.toString().startsWith('group_')) {
-    console.log('IDinfo: Skipping for group, ensuring visibility');
     // Still enable the message form for groups and ensure visibility
     disableOnLoad(false);
     $('.messenger-messagingView').css('display', 'flex').show();
@@ -691,11 +687,8 @@ initClientChannel();
 
 // Listen to messages, and append if data received
 channel.bind("messaging", function (data) {
-  console.log('Pusher message received:', data);
-  
   // Handle group messages
   if (data.group_id && getMessengerId() == 'group_' + data.group_id) {
-    console.log('Received group message for current group');
     $(".messages").find(".message-hint").remove();
     messagesContainer.find(".messages").append(data.message);
     scrollToBottom(messagesContainer);
@@ -708,12 +701,13 @@ channel.bind("messaging", function (data) {
   }
   // Handle group messages when not viewing the group (update group list)
   else if (data.group_id) {
-    console.log('Received group message for another group:', data.group_id);
-    // Update group list with new message indicator
+    // Update group list with unread count
     const groupListItem = $(`.group-list-item[data-group-id="${data.group_id}"]`);
     if (groupListItem.length > 0) {
-      // Add unread indicator or update last message
-      groupListItem.addClass('has-unread');
+      // Increment unread count
+      if (typeof incrementGroupUnreadCount === 'function') {
+        incrementGroupUnreadCount(data.group_id);
+      }
     }
     
     // Play notification sound
@@ -721,7 +715,6 @@ channel.bind("messaging", function (data) {
   }
   // Handle one-to-one messages
   else if (data.from_id == getMessengerId() && data.to_id == auth_id) {
-    console.log('Received one-to-one message');
     $(".messages").find(".message-hint").remove();
     messagesContainer.find(".messages").append(data.message);
     scrollToBottom(messagesContainer);
