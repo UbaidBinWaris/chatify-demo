@@ -7,14 +7,19 @@
         sounds: {!! json_encode(config('chatify.sounds')) !!},
         allowedImages: {!! json_encode(config('chatify.attachments.allowed_images')) !!},
         allowedFiles: {!! json_encode(config('chatify.attachments.allowed_files')) !!},
+        allowedAudio: {!! json_encode(config('chatify.attachments.allowed_audio')) !!},
         maxUploadSize: {{ Chatify::getMaxUploadSize() }},
         pusher: {!! json_encode(config('chatify.pusher')) !!},
         pusherAuthEndpoint: '{{route("pusher.auth")}}'
     };
-    window.chatify.allAllowedExtensions = chatify.allowedImages.concat(chatify.allowedFiles);
+    window.chatify.allAllowedExtensions = chatify.allowedImages.concat(chatify.allowedFiles).concat(chatify.allowedAudio);
 </script>
 <script src="{{ asset('js/chatify/utils.js') }}"></script>
+<script src="{{ asset('js/chatify/voice-recorder.js') }}"></script>
 <script src="{{ asset('js/chatify/code.js') }}"></script>
 <script src="{{ asset('js/chatify/groups.js') }}"></script>
+@if(env('APP_DEBUG', false))
+<script src="{{ asset('js/chatify/voice-recorder-tests.js') }}"></script>
+@endif
 </head>
 </html>

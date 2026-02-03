@@ -450,12 +450,39 @@ function sendMessage() {
   temporaryMsgId += 1;
   let tempID = `temp_${temporaryMsgId}`;
   let hasFile = !!$(".upload-attachment").val();
+  let hasVoiceRecording = window.voiceRecorder && window.voiceRecorder.hasRecordedAudio();
   const inputValue = $.trim(messageInput.val());
-  if (inputValue.length > 0 || hasFile) {
+  
+  console.log('Sending message - Voice check:', {
+    voiceRecorderExists: !!window.voiceRecorder,
+    hasVoiceRecording: hasVoiceRecording,
+    hasFile: hasFile,
+    messageLength: inputValue.length
+  });
+  
+  if (inputValue.length > 0 || hasFile || hasVoiceRecording) {
     const formData = new FormData($("#message-form")[0]);
+    
+    // If there's a voice recording, add it to form data
+    if (hasVoiceRecording && window.voiceRecorder) {
+      const audioFile = window.voiceRecorder.getRecordedAudioFile();
+      if (audioFile) {
+        console.log('Adding voice file to form data:', audioFile);
+        formData.set("file", audioFile);
+        hasFile = true; // Treat voice as file attachment
+      }
+    }
+    
     formData.append("id", getMessengerId());
     formData.append("temporaryMsgId", tempID);
     formData.append("_token", csrfToken);
+    
+    // Debug: Log form data contents
+    console.log('Form data entries:');
+    for (let pair of formData.entries()) {
+      console.log(pair[0] + ':', pair[1]);
+    }
+    
     $.ajax({
       url: $("#message-form").attr("action"),
       method: "POST",
@@ -487,14 +514,28 @@ function sendMessage() {
         // form reset and focus
         $("#message-form").trigger("reset");
         cancelAttachment();
+        
+        // Remove audio preview UI but keep the blob for sending
+        if (hasVoiceRecording && window.voiceRecorder) {
+          console.log('Removing audio preview (keeping blob for upload)');
+          window.voiceRecorder.removeAudioPreview(false); // Don't clear blob yet
+        }
+        
         messageInput.focus();
       },
       success: (data) => {
+        console.log('Message sent successfully:', data);
         if (data.error > 0) {
           // message card error status
           errorMessageCard(tempID);
           console.error(data.error_msg);
         } else {
+          // Clear voice recording after successful send
+          if (hasVoiceRecording && window.voiceRecorder) {
+            console.log('Clearing voice recording after successful send');
+            window.voiceRecorder.removeAudioPreview(true);
+          }
+          
           // update contact item
           updateContactItem(getMessengerId());
           // temporary message card
@@ -512,6 +553,12 @@ function sendMessage() {
         }
       },
       error: () => {
+        // Clear voice recording on error too
+        if (hasVoiceRecording && window.voiceRecorder) {
+          console.log('Clearing voice recording after send error');
+          window.voiceRecorder.clearRecording();
+        }
+        
         // message card error status
         errorMessageCard(tempID);
         // error log

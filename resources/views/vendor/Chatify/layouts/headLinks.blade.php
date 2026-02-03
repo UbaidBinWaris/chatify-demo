@@ -29,6 +29,7 @@
 <link href="{{ asset('css/chatify/groups.dark.mode.css') }}" rel="stylesheet" />
 @endif
 <link href="{{ asset('css/chatify/groups.more.css') }}" rel="stylesheet" />
+<link href="{{ asset('css/chatify/voice-recorder.css') }}" rel="stylesheet" />
 @vite(['resources/css/app.css'])
 
 {{-- Setting messenger primary color to css --}}
