@@ -872,31 +872,78 @@ setInterval(function() {
 }, 60000); // 1 minute
 
 function timeAgoString(dateString) {
-    const date = new Date(dateString);
     const now = new Date();
+    const date = new Date(dateString);
     const seconds = Math.floor((now - date) / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
     
-    let interval = Math.floor(seconds / 31536000);
-    if (interval >= 1) {
-        return interval + " year" + (interval === 1 ? "" : "s") + " ago";
+    // Format time as "10:24 pm"
+    const formatTime = (d) => {
+        let hours = d.getHours();
+        const minutes = d.getMinutes();
+        const ampm = hours >= 12 ? 'pm' : 'am';
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+        return `${hours}:${minutesStr} ${ampm}`;
+    };
+    
+    // Get day name
+    const getDayName = (d) => {
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        return days[d.getDay()];
+    };
+    
+    // Format date as "Jan 15"
+    const formatDate = (d) => {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return `${months[d.getMonth()]} ${d.getDate()}`;
+    };
+    
+    // Check if dates are on the same day
+    const isSameDay = (d1, d2) => {
+        return d1.getDate() === d2.getDate() &&
+               d1.getMonth() === d2.getMonth() &&
+               d1.getFullYear() === d2.getFullYear();
+    };
+    
+    // Check if date is yesterday
+    const isYesterday = (d) => {
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        return isSameDay(d, yesterday);
+    };
+    
+    // Less than 30 seconds
+    if (seconds < 30) {
+        return "just now";
     }
-    interval = Math.floor(seconds / 2592000);
-    if (interval >= 1) {
-        return interval + " month" + (interval === 1 ? "" : "s") + " ago";
+    // Less than 1 minute
+    else if (seconds < 60) {
+        return `${seconds} seconds ago`;
     }
-    interval = Math.floor(seconds / 86400);
-    if (interval >= 1) {
-        return interval + " day" + (interval === 1 ? "" : "s") + " ago";
+    // Less than 1 hour
+    else if (minutes < 60) {
+        return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
     }
-    interval = Math.floor(seconds / 3600);
-    if (interval >= 1) {
-        return interval + " hour" + (interval === 1 ? "" : "s") + " ago";
+    // Today but more than 1 hour ago - show "today at [time]"
+    else if (isSameDay(date, now)) {
+        return `today at ${formatTime(date)}`;
     }
-    interval = Math.floor(seconds / 60);
-    if (interval >= 1) {
-        return interval + " min" + (interval === 1 ? "" : "s") + " ago";
+    // Yesterday
+    else if (isYesterday(date)) {
+        return `yesterday at ${formatTime(date)}`;
     }
-    return "just now";
+    // Within last 7 days - show day name with time
+    else if (days < 7) {
+        return `${getDayName(date)} at ${formatTime(date)}`;
+    }
+    // More than a week - show date with time
+    else {
+        return `${formatDate(date)} at ${formatTime(date)}`;
+    }
 }
 
 /**
@@ -1955,6 +2002,8 @@ function updateElementsDateToTimeAgo() {
     $(this).text(dateStringToTimeAgo(time));
   });
 }
+
+// Update every 30 seconds for better accuracy with "just now" and "X sec ago"
 setInterval(() => {
   updateElementsDateToTimeAgo();
-}, 60000);
+}, 30000);

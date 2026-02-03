@@ -51,7 +51,7 @@ function groupListItem(group) {
                 <td>
                     <p data-id="${group.id}" data-type="group">
                         ${group.name}
-                        <span class="contact-item-time">${lastMessageTime}</span>
+                        <span class="contact-item-time" data-time="${lastMessageTime}">${lastMessageTime ? dateStringToTimeAgo(lastMessageTime) : ''}</span>
                     </p>
                     <span>
                         ${lastMessageSender ? `<span class="lastMessageIndicator">${lastMessageSender}</span>` : ''}
@@ -482,4 +482,14 @@ $(document).ready(function() {
             originalSendMessage();
         }
     };
+    
+    // Update group message timestamps every 30 seconds
+    setInterval(() => {
+        $('.group-list-item .contact-item-time').each(function() {
+            const time = $(this).attr('data-time');
+            if (time) {
+                $(this).text(dateStringToTimeAgo(time));
+            }
+        });
+    }, 30000);
 });
