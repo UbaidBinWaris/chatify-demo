@@ -703,7 +703,7 @@ channel.bind("messaging", function (data) {
 
   playNotificationSound(
     "new_message",
-    !(data.from_id == getMessengerId() && data.to_id == auth_id)
+    true  // Always play sound for new messages
   );
 });
 
@@ -1981,10 +1981,20 @@ emojiPicker.on("emoji", (emoji) => {
  */
 function playNotificationSound(soundName, condition = false) {
   if ((document.hidden || condition) && chatify.sounds.enabled) {
-    const sound = new Audio(
-      `/${chatify.sounds.public_path}/${chatify.sounds[soundName]}`
-    );
-    sound.play();
+    const soundPath = `/${chatify.sounds.public_path}/${chatify.sounds[soundName]}`;
+    console.log('Playing notification sound:', soundPath);
+    const sound = new Audio(soundPath);
+    sound.play().then(() => {
+      console.log('Sound played successfully');
+    }).catch((error) => {
+      console.error('Error playing sound:', error);
+    });
+  } else {
+    console.log('Sound not played - conditions not met:', {
+      documentHidden: document.hidden,
+      condition: condition,
+      soundsEnabled: chatify.sounds.enabled
+    });
   }
 }
 /**

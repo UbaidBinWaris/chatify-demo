@@ -1,0 +1,19 @@
+/* Voice Recorder Styles */
+/* This file contains styles for the voice recording feature */
+
+.voice-recording-interface {
+    /* Additional voice recording styles can be added here */
+}
+
+.recording-status-dot {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ringtone Test</title>
+</head>
+<body>
+    <h1>Test Ringtone.wav</h1>
+    <button onclick="playSound()">Play Ringtone</button>
+    
+    <script>
+        function playSound() {
+            const sound = new Audio('/sounds/chatify/ringtone.wav');
+            sound.play().then(() => {
+                
+            }).catch((error) => {
+                
+            });
+        }
+        
+        // Auto-test on page load (requires user interaction first)
+        
+    </script>
+</body>
+</html>
