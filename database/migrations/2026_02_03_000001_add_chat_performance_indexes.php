@@ -15,64 +15,64 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('ch_messages', function (Blueprint $table) {
-            // Check and add indexes only if they don't exist
-            if (!$this->indexExists('ch_messages', 'idx_messages_conversation')) {
-                $table->index(['from_id', 'to_id', 'created_at'], 'idx_messages_conversation');
-            }
-            
-            if (!$this->indexExists('ch_messages', 'idx_messages_created_at')) {
-                $table->index('created_at', 'idx_messages_created_at');
-            }
-            
-            if (!$this->indexExists('ch_messages', 'idx_messages_unread')) {
-                $table->index(['to_id', 'seen', 'created_at'], 'idx_messages_unread');
-            }
-            
-            // Skip attachment index - BLOB/TEXT columns need special handling
-            // and attachments are typically queried by message, not directly
-        });
+        // Add indexes to ch_messages table
+        if (!$this->indexExists('ch_messages', 'idx_messages_conversation')) {
+            DB::statement('ALTER TABLE ch_messages ADD INDEX idx_messages_conversation(from_id, to_id, created_at)');
+        }
+        
+        if (!$this->indexExists('ch_messages', 'idx_messages_created_at')) {
+            DB::statement('ALTER TABLE ch_messages ADD INDEX idx_messages_created_at(created_at)');
+        }
+        
+        if (!$this->indexExists('ch_messages', 'idx_messages_unread')) {
+            DB::statement('ALTER TABLE ch_messages ADD INDEX idx_messages_unread(to_id, seen, created_at)');
+        }
 
-        Schema::table('users', function (Blueprint $table) {
-            if (!$this->indexExists('users', 'idx_users_name')) {
-                $table->index('name', 'idx_users_name');
+        // Add indexes to users table
+        if (!$this->indexExists('users', 'idx_users_name')) {
+            DB::statement('ALTER TABLE users ADD INDEX idx_users_name(name)');
+        }
+        
+        if (!$this->indexExists('users', 'idx_users_active_status')) {
+            DB::statement('ALTER TABLE users ADD INDEX idx_users_active_status(active_status)');
+        }
+        
+        // Add FULLTEXT index for search
+        if (DB::getDriverName() === 'mysql' && !$this->indexExists('users', 'idx_users_search')) {
+            try {
+                DB::statement('ALTER TABLE users ADD FULLTEXT idx_users_search (name, email)');
+            } catch (\Exception $e) {
+                // Index might already exist, skip
             }
-            
-            if (!$this->indexExists('users', 'idx_users_active_status')) {
-                $table->index('active_status', 'idx_users_active_status');
-            }
-            
-            // Add FULLTEXT index for search if it doesn't exist
-            if (DB::getDriverName() === 'mysql' && !$this->indexExists('users', 'idx_users_search')) {
-                try {
-                    DB::statement('ALTER TABLE users ADD FULLTEXT idx_users_search (name, email)');
-                } catch (\Exception $e) {
-                    // Index might already exist, skip
-                }
-            }
-        });
+        }
 
-        Schema::table('ch_favorites', function (Blueprint $table) {
-            if (!$this->indexExists('ch_favorites', 'idx_favorites_user_favorite')) {
-                $table->index(['user_id', 'favorite_id'], 'idx_favorites_user_favorite');
-            }
-        });
+        // Add indexes to ch_favorites table
+        if (!$this->indexExists('ch_favorites', 'idx_favorites_user_favorite')) {
+            DB::statement('ALTER TABLE ch_favorites ADD INDEX idx_favorites_user_favorite(user_id, favorite_id)');
+        }
     }
 
     /**
-     * Check if an index exists on a table
+     * Check if an index exists on a table (MySQL specific)
      */
     private function indexExists(string $table, string $indexName): bool
     {
-        $connection = Schema::getConnection();
-        $schemaManager = $connection->getDoctrineSchemaManager();
-        
-        try {
-            $indexes = $schemaManager->listTableIndexes($table);
-            return isset($indexes[$indexName]);
-        } catch (\Exception $e) {
+        if (DB::getDriverName() !== 'mysql') {
             return false;
         }
+
+        $database = DB::getDatabaseName();
+        
+        $result = DB::select(
+            "SELECT COUNT(*) as count 
+             FROM information_schema.statistics 
+             WHERE table_schema = ? 
+             AND table_name = ? 
+             AND index_name = ?",
+            [$database, $table, $indexName]
+        );
+
+        return $result[0]->count > 0;
     }
 
     /**
@@ -80,39 +80,33 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('ch_messages', function (Blueprint $table) {
-            if ($this->indexExists('ch_messages', 'idx_messages_conversation')) {
-                $table->dropIndex('idx_messages_conversation');
-            }
-            if ($this->indexExists('ch_messages', 'idx_messages_created_at')) {
-                $table->dropIndex('idx_messages_created_at');
-            }
-            if ($this->indexExists('ch_messages', 'idx_messages_unread')) {
-                $table->dropIndex('idx_messages_unread');
-            }
-        });
+        if ($this->indexExists('ch_messages', 'idx_messages_conversation')) {
+            DB::statement('ALTER TABLE ch_messages DROP INDEX idx_messages_conversation');
+        }
+        if ($this->indexExists('ch_messages', 'idx_messages_created_at')) {
+            DB::statement('ALTER TABLE ch_messages DROP INDEX idx_messages_created_at');
+        }
+        if ($this->indexExists('ch_messages', 'idx_messages_unread')) {
+            DB::statement('ALTER TABLE ch_messages DROP INDEX idx_messages_unread');
+        }
 
-        Schema::table('users', function (Blueprint $table) {
-            if ($this->indexExists('users', 'idx_users_name')) {
-                $table->dropIndex('idx_users_name');
+        if ($this->indexExists('users', 'idx_users_name')) {
+            DB::statement('ALTER TABLE users DROP INDEX idx_users_name');
+        }
+        if ($this->indexExists('users', 'idx_users_active_status')) {
+            DB::statement('ALTER TABLE users DROP INDEX idx_users_active_status');
+        }
+        
+        if (DB::getDriverName() === 'mysql' && $this->indexExists('users', 'idx_users_search')) {
+            try {
+                DB::statement('ALTER TABLE users DROP INDEX idx_users_search');
+            } catch (\Exception $e) {
+                // Index might not exist, skip
             }
-            if ($this->indexExists('users', 'idx_users_active_status')) {
-                $table->dropIndex('idx_users_active_status');
-            }
-            
-            if (DB::getDriverName() === 'mysql' && $this->indexExists('users', 'idx_users_search')) {
-                try {
-                    DB::statement('ALTER TABLE users DROP INDEX idx_users_search');
-                } catch (\Exception $e) {
-                    // Index might not exist, skip
-                }
-            }
-        });
+        }
 
-        Schema::table('ch_favorites', function (Blueprint $table) {
-            if ($this->indexExists('ch_favorites', 'idx_favorites_user_favorite')) {
-                $table->dropIndex('idx_favorites_user_favorite');
-            }
-        });
+        if ($this->indexExists('ch_favorites', 'idx_favorites_user_favorite')) {
+            DB::statement('ALTER TABLE ch_favorites DROP INDEX idx_favorites_user_favorite');
+        }
     }
 };
