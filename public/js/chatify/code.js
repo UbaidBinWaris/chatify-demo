@@ -1476,6 +1476,51 @@ $(document).ready(function () {
     }, 1000);
   });
 
+  // Handle paste event for images from clipboard
+  $("#message-form .m-send").on("paste", (e) => {
+    const clipboardData = e.originalEvent.clipboardData || window.clipboardData;
+    const items = clipboardData.items;
+    
+    if (!items) return;
+    
+    // Loop through clipboard items
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      
+      // Check if the item is an image
+      if (item.type.indexOf("image") !== -1) {
+        e.preventDefault(); // Prevent the default paste behavior
+        
+        const blob = item.getAsFile();
+        
+        // Create a File object from the blob
+        const fileName = `pasted-image-${Date.now()}.png`;
+        const file = new File([blob], fileName, { type: blob.type });
+        
+        // Validate the file
+        if (!attachmentValidate(file)) return false;
+        
+        // Create a DataTransfer object to set the file input
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        
+        // Set the file to the upload input
+        const uploadInput = $(".upload-attachment")[0];
+        uploadInput.files = dataTransfer.files;
+        
+        // Trigger the change event to show preview
+        $(uploadInput).trigger("change");
+        
+        // Focus back on the textarea
+        setTimeout(() => {
+          messageInput.focus();
+        }, 100);
+        
+        break; // Only process the first image
+      }
+    }
+  });
+
   // Image modal
   $("body").on("click", ".chat-image", function () {
     let src = $(this).css("background-image").split(/"/)[1];
