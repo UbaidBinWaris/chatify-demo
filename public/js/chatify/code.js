@@ -318,6 +318,13 @@ function hScroller(scroller) {
  *-------------------------------------------------------------
  */
 function disableOnLoad(disable = true) {
+  // Don't disable if we're in a group chat
+  const messengerId = getMessengerId();
+  if (messengerId && messengerId.toString().startsWith('group_')) {
+    console.log('disableOnLoad: Skipping for group chat:', messengerId);
+    return;
+  }
+  console.log('disableOnLoad called:', disable, 'for:', messengerId);
   if (disable) {
     // hide star button
     $(".add-to-favorite").hide();
@@ -369,11 +376,16 @@ function errorMessageCard(id) {
  *-------------------------------------------------------------
  */
 function IDinfo(id) {
+  console.log('IDinfo called for:', id);
   // Don't run standard IDinfo for groups - they have their own info loading
   if (id && id.toString().startsWith('group_')) {
-    console.log('Skipping standard IDinfo for group:', id);
-    // Still enable the message form for groups
+    console.log('IDinfo: Skipping for group, ensuring visibility');
+    // Still enable the message form for groups and ensure visibility
     disableOnLoad(false);
+    $('.messenger-messagingView').css('display', 'flex').show();
+    $('.messenger-sendCard').show();
+    $('#message-form .m-send').removeAttr('readonly').removeAttr('disabled');
+    $('.messenger-sendCard button').prop('disabled', false);
     return;
   }
   
@@ -453,35 +465,29 @@ function sendMessage() {
   let hasVoiceRecording = window.voiceRecorder && window.voiceRecorder.hasRecordedAudio();
   const inputValue = $.trim(messageInput.val());
   
-  console.log('Sending message - Voice check:', {
-    voiceRecorderExists: !!window.voiceRecorder,
-    hasVoiceRecording: hasVoiceRecording,
-    hasFile: hasFile,
-    messageLength: inputValue.length
-  });
-  
   if (inputValue.length > 0 || hasFile || hasVoiceRecording) {
-    const formData = new FormData($("#message-form")[0]);
+    const formData = new FormData();
     
     // If there's a voice recording, add it to form data
     if (hasVoiceRecording && window.voiceRecorder) {
       const audioFile = window.voiceRecorder.getRecordedAudioFile();
       if (audioFile) {
-        console.log('Adding voice file to form data:', audioFile);
         formData.set("file", audioFile);
         hasFile = true; // Treat voice as file attachment
       }
+    } else if (hasFile) {
+      // Only add the file input if there's actually a file selected
+      const fileInput = $(".upload-attachment")[0];
+      if (fileInput && fileInput.files && fileInput.files.length > 0) {
+        formData.set("file", fileInput.files[0]);
+      }
     }
     
+    // Add other form fields
+    formData.append("message", inputValue);
     formData.append("id", getMessengerId());
     formData.append("temporaryMsgId", tempID);
     formData.append("_token", csrfToken);
-    
-    // Debug: Log form data contents
-    console.log('Form data entries:');
-    for (let pair of formData.entries()) {
-      console.log(pair[0] + ':', pair[1]);
-    }
     
     $.ajax({
       url: $("#message-form").attr("action"),
@@ -517,14 +523,12 @@ function sendMessage() {
         
         // Remove audio preview UI but keep the blob for sending
         if (hasVoiceRecording && window.voiceRecorder) {
-          console.log('Removing audio preview (keeping blob for upload)');
           window.voiceRecorder.removeAudioPreview(false); // Don't clear blob yet
         }
         
         messageInput.focus();
       },
       success: (data) => {
-        console.log('Message sent successfully:', data);
         if (data.error > 0) {
           // message card error status
           errorMessageCard(tempID);
@@ -532,7 +536,6 @@ function sendMessage() {
         } else {
           // Clear voice recording after successful send
           if (hasVoiceRecording && window.voiceRecorder) {
-            console.log('Clearing voice recording after successful send');
             window.voiceRecorder.removeAudioPreview(true);
           }
           
@@ -555,7 +558,6 @@ function sendMessage() {
       error: () => {
         // Clear voice recording on error too
         if (hasVoiceRecording && window.voiceRecorder) {
-          console.log('Clearing voice recording after send error');
           window.voiceRecorder.clearRecording();
         }
         
@@ -594,7 +596,6 @@ function setMessagesLoading(loading = false) {
 function fetchMessages(id, newFetch = false) {
   // Don't fetch messages for groups - they have their own loading mechanism
   if (id && id.toString().startsWith('group_')) {
-    console.log('Skipping standard fetchMessages for group:', id);
     return;
   }
   
@@ -690,7 +691,37 @@ initClientChannel();
 
 // Listen to messages, and append if data received
 channel.bind("messaging", function (data) {
-  if (data.from_id == getMessengerId() && data.to_id == auth_id) {
+  console.log('Pusher message received:', data);
+  
+  // Handle group messages
+  if (data.group_id && getMessengerId() == 'group_' + data.group_id) {
+    console.log('Received group message for current group');
+    $(".messages").find(".message-hint").remove();
+    messagesContainer.find(".messages").append(data.message);
+    scrollToBottom(messagesContainer);
+    // Ensure messaging view stays visible
+    $('.messenger-messagingView').css('display', 'flex').show();
+    $('.messenger-sendCard').show();
+    
+    // Play notification sound for group messages
+    playNotificationSound("new_message", true);
+  }
+  // Handle group messages when not viewing the group (update group list)
+  else if (data.group_id) {
+    console.log('Received group message for another group:', data.group_id);
+    // Update group list with new message indicator
+    const groupListItem = $(`.group-list-item[data-group-id="${data.group_id}"]`);
+    if (groupListItem.length > 0) {
+      // Add unread indicator or update last message
+      groupListItem.addClass('has-unread');
+    }
+    
+    // Play notification sound
+    playNotificationSound("new_message", true);
+  }
+  // Handle one-to-one messages
+  else if (data.from_id == getMessengerId() && data.to_id == auth_id) {
+    console.log('Received one-to-one message');
     $(".messages").find(".message-hint").remove();
     messagesContainer.find(".messages").append(data.message);
     scrollToBottom(messagesContainer);
@@ -699,12 +730,10 @@ channel.bind("messaging", function (data) {
     $(".messenger-list-item[data-contact=" + getMessengerId() + "]")
       .find("tr>td>b")
       .remove();
+    
+    // Play notification sound
+    playNotificationSound("new_message", true);
   }
-
-  playNotificationSound(
-    "new_message",
-    true  // Always play sound for new messages
-  );
 });
 
 // listen to typing indicator
@@ -1565,6 +1594,11 @@ $(document).ready(function () {
 
   // click action for list item [user/group]
   $("body").on("click", ".messenger-list-item", function () {
+    // Skip if this is a group item (handled by groups.js)
+    if ($(this).hasClass('group-list-item')) {
+      return;
+    }
+    
     if ($(this).find("tr[data-action]").attr("data-action") == "1") {
       $(".messenger-listView").hide();
     }
@@ -1979,21 +2013,27 @@ emojiPicker.on("emoji", (emoji) => {
  * Notification sounds
  *-------------------------------------------------------------
  */
+let userHasInteracted = false;
+
+// Track user interaction to enable autoplay
+document.addEventListener('click', () => { userHasInteracted = true; }, { once: true });
+document.addEventListener('keydown', () => { userHasInteracted = true; }, { once: true });
+document.addEventListener('touchstart', () => { userHasInteracted = true; }, { once: true });
+
 function playNotificationSound(soundName, condition = false) {
-  if ((document.hidden || condition) && chatify.sounds.enabled) {
+  // Only play sounds if user has interacted and sounds are enabled
+  if ((document.hidden || condition) && chatify.sounds.enabled && userHasInteracted) {
     const soundPath = `/${chatify.sounds.public_path}/${chatify.sounds[soundName]}`;
-    console.log('Playing notification sound:', soundPath);
     const sound = new Audio(soundPath);
-    sound.play().then(() => {
-      console.log('Sound played successfully');
-    }).catch((error) => {
-      console.error('Error playing sound:', error);
-    });
-  } else {
-    console.log('Sound not played - conditions not met:', {
-      documentHidden: document.hidden,
-      condition: condition,
-      soundsEnabled: chatify.sounds.enabled
+    
+    // Set volume to ensure it's not muted
+    sound.volume = 0.5;
+    
+    sound.play().catch((error) => {
+      // Silently fail - don't spam console with autoplay errors
+      if (error.name !== 'NotAllowedError') {
+        console.warn('Sound notification skipped:', error.message);
+      }
     });
   }
 }

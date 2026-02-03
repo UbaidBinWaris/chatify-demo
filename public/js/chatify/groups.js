@@ -185,12 +185,12 @@ let isOpeningGroup = false;
 function openGroupChat(groupId) {
     // Prevent multiple simultaneous opens
     if (isOpeningGroup) {
-        console.log('Already opening a group, skipping...');
+        console.log('Group chat already opening, skipping...');
         return;
     }
     
-    isOpeningGroup = true;
     console.log('Opening group chat:', groupId);
+    isOpeningGroup = true;
     currentGroupId = groupId;
     const groupMessengerId = 'group_' + groupId;
     setMessengerId(groupMessengerId);
@@ -201,10 +201,18 @@ function openGroupChat(groupId) {
         window.history.pushState({}, document.title, `${chatifyUrl}/${groupMessengerId}`);
     }
     
-    // Ensure messaging view is visible first
+    // Ensure messaging view is visible first and stays visible
+    console.log('Showing messaging view...');
     $('.messenger-messagingView').css('display', 'flex').show();
     
+    // Enable message input for groups (prevent disable)
+    console.log('Enabling message input...');
+    $('#message-form .m-send').removeAttr('readonly').removeAttr('disabled');
+    $('.messenger-sendCard button').prop('disabled', false);
+    $('.messenger-sendCard').show();
+    
     // Then load info and messages
+    console.log('Loading group info and messages...');
     loadGroupInfo(groupId);
     loadGroupMessages(groupId);
     
@@ -216,6 +224,7 @@ function openGroupChat(groupId) {
     // Reset the flag after a short delay
     setTimeout(() => {
         isOpeningGroup = false;
+        console.log('Group chat opened successfully');
     }, 500);
 }
 
@@ -223,10 +232,12 @@ function openGroupChat(groupId) {
  * Load group info
  */
 function loadGroupInfo(groupId) {
+    console.log('loadGroupInfo called for group:', groupId);
     $.ajax({
         url: `/groups/${groupId}`,
         method: 'GET',
         success: function(data) {
+            console.log('Group info loaded:', data);
             if (!data || !data.group) {
                 console.error('Group data not found');
                 return;
@@ -252,12 +263,16 @@ function loadGroupInfo(groupId) {
             $('.messenger-infoView-btns .delete-conversation').show();
             $('.messenger-infoView-shared').show();
             
-            // Show messaging view and ensure it's visible
+            // Show messaging view and ensure it's visible and stays visible
             $('.messenger-messagingView').css('display', 'flex').show();
             
-            // Enable message input
-            $('#message-form .m-send').removeAttr('readonly');
+            // Enable message input and keep it enabled
+            $('#message-form .m-send').removeAttr('readonly').removeAttr('disabled');
             $('.messenger-sendCard button').prop('disabled', false);
+            $('.messenger-sendCard').show();
+            
+            // Focus on message input
+            $('#message-form .m-send').focus();
         },
         error: function(xhr) {
             console.error('Failed to load group info:', xhr);
@@ -269,73 +284,40 @@ function loadGroupInfo(groupId) {
  * Load group messages
  */
 function loadGroupMessages(groupId) {
+    console.log('loadGroupMessages called for group:', groupId);
     const messagesElement = messagesContainer.find('.messages');
-    
-    console.log('[DEBUG] loadGroupMessages called for group:', groupId);
-    console.log('[DEBUG] messagesElement exists:', messagesElement.length > 0);
-    console.log('[DEBUG] messagesContainer visibility:', messagesContainer.is(':visible'));
     
     // Clear existing messages first
     messagesElement.html('');
-    console.log('[DEBUG] Cleared messages container');
     
     $.ajax({
         url: `/groups/${groupId}/messages`,
         method: 'GET',
         success: function(data) {
-            console.log('[DEBUG] Group messages received:', data);
-            console.log('[DEBUG] Message count:', data.messages ? data.messages.length : 0);
-            
             if (data.messages && data.messages.length > 0) {
                 let messagesHtml = '';
-                data.messages.forEach(function(msg, index) {
-                    console.log(`[DEBUG] Processing message ${index}:`, msg);
+                data.messages.forEach(function(msg) {
                     const isOwn = msg.from_id == auth_id;
                     messagesHtml += groupMessageCard(msg, isOwn);
                 });
                 
-                console.log('[DEBUG] Setting messages HTML, length:', messagesHtml.length);
                 messagesElement.html(messagesHtml);
                 
-                console.log('[DEBUG] Messages HTML set, checking DOM...');
-                console.log('[DEBUG] Message cards in DOM:', messagesElement.find('.message-card').length);
+                // Ensure messaging view and messages stay visible
+                $('.messenger-messagingView').css('display', 'flex').show();
+                $('.messenger-sendCard').show();
                 
                 // Ensure messages are visible
                 setTimeout(function() {
-                    console.log('[DEBUG] After timeout - messages still in DOM:', messagesElement.find('.message-card').length);
-                    console.log('[DEBUG] messagesContainer display:', messagesContainer.css('display'));
-                    console.log('[DEBUG] messagesElement display:', messagesElement.css('display'));
                     scrollToBottom(messagesContainer);
                 }, 100);
                 
-                // Add mutation observer to detect if messages are being removed
-                const observer = new MutationObserver(function(mutations) {
-                    mutations.forEach(function(mutation) {
-                        if (mutation.type === 'childList') {
-                            console.log('[DEBUG] DOM mutation detected in messages container:', mutation);
-                            console.log('[DEBUG] Nodes removed:', mutation.removedNodes.length);
-                            console.log('[DEBUG] Nodes added:', mutation.addedNodes.length);
-                        }
-                    });
-                });
-                
-                observer.observe(messagesElement[0], { 
-                    childList: true, 
-                    subtree: true 
-                });
-                
-                // Disconnect observer after 5 seconds
-                setTimeout(() => observer.disconnect(), 5000);
-                
             } else {
                 messagesElement.html('<p class="message-hint center-el"><span>No messages yet</span></p>');
-                console.log('[DEBUG] No messages, showing hint');
             }
         },
         error: function(xhr) {
-            console.error('[ERROR] Failed to load group messages:', xhr);
-            console.error('[ERROR] Status:', xhr.status);
-            console.error('[ERROR] Response:', xhr.responseText);
+            console.error('Failed to load group messages:', xhr);
             messagesElement.html('<p class="message-hint center-el"><span>Failed to load messages</span></p>');
         }
     });
@@ -348,13 +330,35 @@ function groupMessageCard(message, isOwn) {
     const messageClass = isOwn ? 'mc-sender' : 'mc-receiver';
     const senderName = isOwn ? 'You' : message.from.name;
     
+    // Handle voice message attachment
+    let attachmentHtml = '';
+    if (message.attachment) {
+        const isVoice = message.attachment.includes('.webm') || 
+                       message.attachment.includes('.wav') || 
+                       message.attachment.includes('.mp3') ||
+                       message.attachment.includes('.ogg');
+        
+        if (isVoice) {
+            attachmentHtml = `
+                <div class="voice-message-container">
+                    <audio controls>
+                        <source src="${message.attachment}" type="audio/webm">
+                        <source src="${message.attachment}" type="audio/mpeg">
+                        Your browser does not support audio playback.
+                    </audio>
+                </div>`;
+        } else {
+            attachmentHtml = `<div class="attachment"><a href="${message.attachment}" target="_blank">📎 View Attachment</a></div>`;
+        }
+    }
+    
     return `
         <div class="message-card ${messageClass}" data-id="${message.id}">
             <div class="message-card-content">
                 ${!isOwn ? `<div class="message-sender">${senderName}</div>` : ''}
                 <div class="message">
                     ${message.body || ''}
-                    ${message.attachment ? `<div class="attachment"><a href="${message.attachment}" target="_blank">View Attachment</a></div>` : ''}
+                    ${attachmentHtml}
                     <sub>
                         <span class="time">${message.created_at}</span>
                     </sub>
@@ -375,11 +379,30 @@ function sendGroupMessage() {
     
     const groupId = messengerId.replace('group_', '');
     const inputValue = $.trim(messageInput.val());
-    const hasFile = !!$('.upload-attachment').val();
+    let hasFile = !!$('.upload-attachment').val();
+    let hasVoiceRecording = window.voiceRecorder && window.voiceRecorder.hasRecordedAudio();
     
-    if (inputValue.length > 0 || hasFile) {
-        const formData = new FormData($('#message-form')[0]);
-        formData.append('message', inputValue);
+    if (inputValue.length > 0 || hasFile || hasVoiceRecording) {
+        const formData = new FormData();
+        
+        // Handle voice recording
+        if (hasVoiceRecording && window.voiceRecorder) {
+            console.log('Adding voice recording to group message');
+            const audioFile = window.voiceRecorder.getRecordedAudioFile();
+            if (audioFile) {
+                formData.set('attachment', audioFile);
+                hasFile = true;
+            }
+        } else if (hasFile) {
+            // Handle regular file attachment
+            const fileInput = $('.upload-attachment')[0];
+            if (fileInput && fileInput.files && fileInput.files.length > 0) {
+                formData.set('attachment', fileInput.files[0]);
+            }
+        }
+        
+        // Add message text (empty string if only voice message)
+        formData.append('message', inputValue || '');
         formData.append('_token', csrfToken);
         
         $.ajax({
@@ -391,16 +414,24 @@ function sendGroupMessage() {
             beforeSend: function() {
                 messageInput.val('');
                 $('#message-form').trigger('reset');
+                
+                // Clear voice recording if present
+                if (hasVoiceRecording && window.voiceRecorder) {
+                    window.voiceRecorder.removeAudioPreview(true);
+                }
             },
             success: function(response) {
+                console.log('Group message sent:', response);
                 if (response.success) {
                     messagesContainer.find('.messages').append(
                         groupMessageCard(response.message, true)
                     );
                     scrollToBottom(messagesContainer);
+                    // Note: Notification sound only plays for RECEIVED messages, not sent ones
                 }
             },
-            error: function() {
+            error: function(xhr, status, error) {
+                console.error('Failed to send group message:', error);
                 alert('Failed to send message');
             }
         });

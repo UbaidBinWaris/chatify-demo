@@ -38,7 +38,7 @@ return [
     |-------------------------------------
     */
     'pusher' => [
-        'debug' => env('APP_DEBUG', false),
+        'debug' => true,  // Enable Pusher console logging for debugging
         'key' => env('PUSHER_APP_KEY'),
         'secret' => env('PUSHER_APP_SECRET'),
         'app_id' => env('PUSHER_APP_ID'),

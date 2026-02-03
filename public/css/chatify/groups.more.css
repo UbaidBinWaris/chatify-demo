@@ -20,3 +20,39 @@
 .mc-receiver .message {
   border-top-left-radius: 2px;
 }
+
+/* Voice message container in groups */
+.voice-message-container {
+  margin: 5px 0;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+}
+
+[data-theme="dark"] .voice-message-container {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.voice-message-container audio {
+  width: 100%;
+  max-width: 300px;
+  height: 32px;
+  outline: none;
+}
+
+/* Unread indicator for groups */
+.group-list-item.has-unread {
+  background-color: rgba(var(--primary-color-rgb), 0.1);
+}
+
+.group-list-item.has-unread::after {
+  content: '';
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  background: var(--primary-color);
+  border-radius: 50%;
+}

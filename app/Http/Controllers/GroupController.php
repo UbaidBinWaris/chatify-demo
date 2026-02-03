@@ -11,6 +11,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Pusher\Pusher;
 
 class GroupController extends Controller
 {
@@ -207,9 +208,14 @@ class GroupController extends Controller
         }
 
         $request->validate([
-            'message' => 'required_without:attachment|string',
+            'message' => 'nullable|string',
             'attachment' => 'nullable|file|max:150000',
         ]);
+
+        // Ensure at least one of message or attachment is present
+        if (empty($request->message) && !$request->hasFile('attachment')) {
+            return response()->json(['error' => 'Message or attachment is required'], 422);
+        }
 
         $attachmentPath = null;
         if ($request->hasFile('attachment')) {
@@ -227,6 +233,9 @@ class GroupController extends Controller
 
         $message->load('from');
 
+        // Broadcast to all group members via Pusher
+        $this->broadcastGroupMessage($group, $message);
+
         return response()->json([
             'success' => true,
             'message' => [
@@ -239,6 +248,103 @@ class GroupController extends Controller
                 'created_at' => $message->created_at->diffForHumans(),
             ]
         ]);
+    }
+
+    /**
+     * Broadcast group message to all members
+     */
+    private function broadcastGroupMessage($group, $message)
+    {
+        try {
+            // Create Pusher instance with proper configuration
+            $pusher = new Pusher(
+                config('chatify.pusher.key'),
+                config('chatify.pusher.secret'),
+                config('chatify.pusher.app_id'),
+                [
+                    'cluster' => config('chatify.pusher.options.cluster'),
+                    'useTLS' => config('chatify.pusher.options.encrypted', true)
+                ]
+            );
+            
+            \Log::info('Broadcasting group message', [
+                'group_id' => $group->id,
+                'from_id' => $message->from_id,
+                'member_count' => $group->members->count(),
+                'pusher_app_id' => config('chatify.pusher.app_id')
+            ]);
+
+            // Generate message card HTML directly (not using Blade template to avoid $seen variable error)
+            $messageCard = $this->generateGroupMessageHtml($message, false);
+
+            // Broadcast to each group member
+            foreach ($group->members as $member) {
+                if ($member->id !== Auth::id()) { // Don't send to sender
+                    \Log::info('Sending Pusher event to member', [
+                        'channel' => 'private-chatify.' . $member->id,
+                        'event' => 'messaging',
+                        'group_id' => $group->id
+                    ]);
+                    
+                    $pusher->trigger(
+                        'private-chatify.' . $member->id,
+                        'messaging',
+                        [
+                            'from_id' => $message->from_id,
+                            'to_id' => $member->id,
+                            'group_id' => $group->id,
+                            'message' => $messageCard,
+                        ]
+                    );
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to broadcast group message: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Generate group message HTML
+     */
+    private function generateGroupMessageHtml($message, $isOwn)
+    {
+        $messageClass = $isOwn ? 'mc-sender' : 'mc-receiver';
+        $senderName = $isOwn ? 'You' : $message->from->name;
+        
+        // Handle attachment (voice or file)
+        $attachmentHtml = '';
+        if ($message->attachment) {
+            $attachmentPath = asset('storage/' . $message->attachment);
+            $isVoice = str_contains($message->attachment, '.webm') || 
+                      str_contains($message->attachment, '.wav') || 
+                      str_contains($message->attachment, '.mp3') ||
+                      str_contains($message->attachment, '.ogg');
+            
+            if ($isVoice) {
+                $attachmentHtml = '<div class="voice-message-container">
+                    <audio controls>
+                        <source src="' . $attachmentPath . '" type="audio/webm">
+                        <source src="' . $attachmentPath . '" type="audio/mpeg">
+                        Your browser does not support audio playback.
+                    </audio>
+                </div>';
+            } else {
+                $attachmentHtml = '<div class="attachment"><a href="' . $attachmentPath . '" target="_blank">📎 View Attachment</a></div>';
+            }
+        }
+        
+        return '<div class="message-card ' . $messageClass . '" data-id="' . $message->id . '">
+            <div class="message-card-content">' .
+                ($isOwn ? '' : '<div class="message-sender">' . $senderName . '</div>') .
+                '<div class="message">' .
+                    ($message->body ? e($message->body) : '') .
+                    $attachmentHtml .
+                    '<sub>
+                        <span class="time">' . $message->created_at->diffForHumans() . '</span>
+                    </sub>
+                </div>
+            </div>
+        </div>';
     }
 
     /**
