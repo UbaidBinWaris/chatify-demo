@@ -37,6 +37,14 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        $user = Auth::user();
+        if ($user) {
+            $user->update([
+                'active_status' => 0,
+                'last_seen_at' => now(), // importing Carbon not strictly needed if using helper or string, but now() is fine
+            ]);
+        }
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();

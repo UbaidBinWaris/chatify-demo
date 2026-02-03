@@ -43,4 +43,8 @@ Route::middleware('auth')->group(function () {
     });
 });
 
+
+// Override Chatify setActiveStatus
+Route::post('/chatify/setActiveStatus', [App\Http\Controllers\MessengerControllerOverride::class, 'setActiveStatus'])->name('chatify.setActiveStatus');
+
 require __DIR__.'/auth.php';

@@ -758,22 +758,98 @@ var activeStatusChannel = pusher.subscribe("presence-activeStatus");
 
 // Joined
 activeStatusChannel.bind("pusher:member_added", function (member) {
-  setActiveStatus(1);
-  $(".messenger-list-item[data-contact=" + member.id + "]")
-    .find(".activeStatus")
-    .remove();
-  $(".messenger-list-item[data-contact=" + member.id + "]")
-    .find(".avatar")
-    .before(activeStatusCircle());
+  // setActiveStatus(1); // REMOVED: This was incorrectly updating the current user's status when others join
+  var contactItem = $(".messenger-list-item[data-contact=" + member.id + "]");
+  
+  // Add green dot
+  contactItem.find(".activeStatus").remove();
+  contactItem.find(".avatar").before(activeStatusCircle());
+
+  // Update text to "Active Now"
+  var statusText = contactItem.find(".user-status-text");
+  if(statusText.length === 0) {
+      // Create if doesn't exist (e.g. was offline/no last seen rendered)
+      contactItem.find("td:eq(1)").append('<p class="user-status-text" data-status="online" style="font-size: 10px; color: #4caf50; margin: 0;">Active Now</p>');
+  } else {
+      statusText.attr('data-status', 'online')
+                .css('color', '#4caf50')
+                .text('Active Now')
+                .removeAttr('data-last-seen');
+  }
 });
 
 // Leaved
 activeStatusChannel.bind("pusher:member_removed", function (member) {
-  setActiveStatus(0);
-  $(".messenger-list-item[data-contact=" + member.id + "]")
-    .find(".activeStatus")
-    .remove();
+  // setActiveStatus(0); // REMOVED: This was incorrectly updating the current user's status when others leave
+  var contactItem = $(".messenger-list-item[data-contact=" + member.id + "]");
+  
+  // Remove green dot
+  contactItem.find(".activeStatus").remove();
+  
+  // Update text to "Last seen just now"
+  var statusText = contactItem.find(".user-status-text");
+  var now = new Date().toISOString();
+  
+  if(statusText.length === 0) {
+      contactItem.find("td:eq(1)").append('<p class="user-status-text" data-status="offline" data-last-seen="'+now+'" style="font-size: 10px; color: #999; margin: 0;">Last seen just now</p>');
+  } else {
+      statusText.attr('data-status', 'offline')
+                .attr('data-last-seen', now)
+                .css('color', '#999')
+                .text('Last seen just now');
+  }
 });
+
+// Initial Subscription Success - Sync valid online users
+activeStatusChannel.bind("pusher:subscription_succeeded", function (members) {
+    // Get all user IDs currently in the presence channel
+    var onlineMemberIds = Object.keys(members.members);
+    
+    // Iterate over all contact items in the list
+    $(".messenger-list-item").each(function() {
+        var contactId = $(this).attr("data-contact");
+        var isOnline = onlineMemberIds.includes(contactId);
+        var contactItem = $(this);
+
+        if (isOnline) {
+             // Ensure it shows online
+             if (contactItem.find(".activeStatus").length === 0) {
+                 contactItem.find(".avatar").before(activeStatusCircle());
+             }
+             var statusText = contactItem.find(".user-status-text");
+             if(statusText.length === 0) {
+                 contactItem.find("td:eq(1)").append('<p class="user-status-text" data-status="online" style="font-size: 10px; color: #4caf50; margin: 0;">Active Now</p>');
+             } else {
+                 statusText.attr('data-status', 'online').css('color', '#4caf50').text('Active Now').removeAttr('data-last-seen');
+             }
+        } else {
+             // If local DB thinks it's online but Pusher says offline, trust Pusher? 
+             // Ideally yes, but maybe Pusher is just connecting. 
+             // But subscription_succeeded means we have the full list.
+             // So if they are NOT in the list, they are offline.
+             
+             // BUT: The current user (me) might not be in the list if I am not viewing? No, I am viewing.
+             // NOTE: members.members includes me.
+
+             // If visible as Online (green dot) but not in list -> remove green dot.
+             if (contactItem.find(".activeStatus").length > 0) {
+                 contactItem.find(".activeStatus").remove();
+                 
+                 // Fallback to "Last seen recently" if we don't have a time, or keep existing time
+                 var statusText = contactItem.find(".user-status-text");
+                 // If it said "Active Now", change it.
+                 if (statusText.text() === "Active Now") {
+                     var now = new Date().toISOString();
+                     statusText.attr('data-status', 'offline')
+                         .attr('data-last-seen', now) // Approximation since we detected them offline just now
+                         .css('color', '#999')
+                         .text('Last seen recently');
+                 }
+             }
+        }
+    });
+});
+
 
 function handleVisibilityChange() {
   if (!document.hidden) {
@@ -782,6 +858,46 @@ function handleVisibilityChange() {
 }
 
 document.addEventListener("visibilitychange", handleVisibilityChange, false);
+
+
+// Update Last Seen timestamps every minute
+setInterval(function() {
+    $('.user-status-text[data-status="offline"]').each(function() {
+        var lastSeen = $(this).attr('data-last-seen');
+        if (lastSeen) {
+            var timeAgo = timeAgoString(lastSeen);
+            $(this).text('Last seen ' + timeAgo);
+        }
+    });
+}, 60000); // 1 minute
+
+function timeAgoString(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const seconds = Math.floor((now - date) / 1000);
+    
+    let interval = Math.floor(seconds / 31536000);
+    if (interval >= 1) {
+        return interval + " year" + (interval === 1 ? "" : "s") + " ago";
+    }
+    interval = Math.floor(seconds / 2592000);
+    if (interval >= 1) {
+        return interval + " month" + (interval === 1 ? "" : "s") + " ago";
+    }
+    interval = Math.floor(seconds / 86400);
+    if (interval >= 1) {
+        return interval + " day" + (interval === 1 ? "" : "s") + " ago";
+    }
+    interval = Math.floor(seconds / 3600);
+    if (interval >= 1) {
+        return interval + " hour" + (interval === 1 ? "" : "s") + " ago";
+    }
+    interval = Math.floor(seconds / 60);
+    if (interval >= 1) {
+        return interval + " min" + (interval === 1 ? "" : "s") + " ago";
+    }
+    return "just now";
+}
 
 /**
  *-------------------------------------------------------------

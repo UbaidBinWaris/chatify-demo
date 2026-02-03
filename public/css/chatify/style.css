@@ -745,13 +745,15 @@ body {
   color: var(--primary-color);
 }
 .activeStatus {
-  width: 12px;
-  height: 12px;
+  width: 18px;
+  height: 18px;
   background: #4caf50;
-  border-radius: 20px;
+  border-radius: 50%;
+  border: 2px solid #fff; /* added white border for better visibility */
   position: absolute;
-  bottom: 12%;
-  right: 6%;
+  bottom: 15px;
+  right: 3px;
+  z-index: 1;
   transition: border 0.1s;
 }
 .lastMessageIndicator {
