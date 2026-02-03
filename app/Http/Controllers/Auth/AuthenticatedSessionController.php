@@ -13,7 +13,7 @@ use Illuminate\View\View;
 class AuthenticatedSessionController extends Controller
 {
     /**
-     * Display the login view.
+     * Display the login view (email input).
      */
     public function create(): View
     {
@@ -21,11 +21,38 @@ class AuthenticatedSessionController extends Controller
     }
 
     /**
+     * Display the complete login form (after OTP verification).
+     */
+    public function showCompleteForm(): View|RedirectResponse
+    {
+        // Check if email is verified
+        if (!session('verified_email') || session('verification_type') !== 'login') {
+            return redirect()->route('login')->withErrors([
+                'email' => 'Please verify your email first.'
+            ]);
+        }
+
+        return view('auth.login-complete', [
+            'email' => session('verified_email'),
+        ]);
+    }
+
+    /**
      * Handle an incoming authentication request.
      */
     public function store(LoginRequest $request): RedirectResponse
     {
+        // Verify that email was verified via OTP
+        if (!session('verified_email') || session('verification_type') !== 'login') {
+            return redirect()->route('login')->withErrors([
+                'email' => 'Please verify your email first.',
+            ]);
+        }
+
         $request->authenticate();
+
+        // Clear session data
+        session()->forget(['verified_email', 'verification_type', 'verification_id']);
 
         $request->session()->regenerate();
 
@@ -41,7 +68,7 @@ class AuthenticatedSessionController extends Controller
         if ($user) {
             $user->update([
                 'active_status' => 0,
-                'last_seen_at' => now(), // importing Carbon not strictly needed if using helper or string, but now() is fine
+                'last_seen_at' => now(),
             ]);
         }
 
