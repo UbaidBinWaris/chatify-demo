@@ -547,6 +547,20 @@ function sendMessage() {
           tempMsgCardElement.remove();
           // scroll to bottom
           scrollToBottom(messagesContainer);
+          
+          // Load reactions for the new message (extract ID from message HTML)
+          setTimeout(function() {
+            if (typeof MessageReactions !== 'undefined') {
+              const newMessageCard = messagesContainer.find('.message-card').last();
+              const newMessageId = newMessageCard.data('id');
+              if (newMessageId) {
+                console.log('Loading reactions for new message:', newMessageId);
+                // Don't load immediately as there likely aren't any yet
+                // But ensure the container is ready for reactions
+              }
+            }
+          }, 100);
+          
           // send contact item updates
           sendContactItemUpdates(true);
         }

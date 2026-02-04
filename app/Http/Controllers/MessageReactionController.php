@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\MessageReaction;
 use App\Models\ChMessage;
+use App\Events\MessageReactionUpdated;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class MessageReactionController extends Controller
 {
@@ -47,8 +49,34 @@ class MessageReactionController extends Controller
         // Toggle the reaction
         $result = MessageReaction::toggle($messageId, $userId, $emoji);
 
-        // Get updated reactions for this message
+        // Clear cache for this message's reactions BEFORE getting updated data
+        Cache::forget("message_reactions_{$messageId}");
+        
+        // Get updated reactions for this message (now fresh from DB)
         $reactions = $this->getMessageReactions($messageId);
+
+        // Broadcast to other users in real-time
+        if ($message->group_id) {
+            // Broadcast to group channel
+            broadcast(new MessageReactionUpdated(
+                $messageId,
+                $reactions,
+                $result['action'],
+                $userId,
+                $emoji,
+                $message->group_id
+            ))->toOthers();
+        } else {
+            // Broadcast to both participants in private chat
+            broadcast(new MessageReactionUpdated(
+                $messageId,
+                $reactions,
+                $result['action'],
+                $userId,
+                $emoji,
+                null
+            ))->toOthers();
+        }
 
         return response()->json([
             'success' => true,
@@ -67,6 +95,29 @@ class MessageReactionController extends Controller
         return response()->json([
             'success' => true,
             'reactions' => $reactions,
+        ]);
+    }
+    
+    /**
+     * Get reactions for multiple messages at once (batch loading for performance)
+     */
+    public function getBatchReactions(Request $request)
+    {
+        $request->validate([
+            'message_ids' => 'required|array',
+            'message_ids.*' => 'exists:ch_messages,id',
+        ]);
+        
+        $messageIds = $request->message_ids;
+        $results = [];
+        
+        foreach ($messageIds as $messageId) {
+            $results[$messageId] = $this->getMessageReactions($messageId);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'reactions' => $results,
         ]);
     }
 
@@ -113,28 +164,32 @@ class MessageReactionController extends Controller
 
     /**
      * Helper method to get formatted reactions for a message
+     * Uses caching for better performance
      */
     private function getMessageReactions($messageId)
     {
-        $reactions = MessageReaction::where('message_id', $messageId)
-            ->with('user:id,name')
-            ->get()
-            ->groupBy('emoji')
-            ->map(function ($group) {
-                return [
-                    'emoji' => $group->first()->emoji,
-                    'count' => $group->count(),
-                    'users' => $group->map(function ($reaction) {
-                        return [
-                            'id' => $reaction->user_id,
-                            'name' => $reaction->user->name,
-                        ];
-                    })->values(),
-                    'hasReacted' => $group->contains('user_id', Auth::id()),
-                ];
-            })
-            ->values();
-
-        return $reactions;
+        // Cache key for this message's reactions
+        $cacheKey = "message_reactions_{$messageId}";
+        
+        return Cache::remember($cacheKey, 300, function () use ($messageId) {
+            return MessageReaction::where('message_id', $messageId)
+                ->with('user:id,name')
+                ->get()
+                ->groupBy('emoji')
+                ->map(function ($group) {
+                    return [
+                        'emoji' => $group->first()->emoji,
+                        'count' => $group->count(),
+                        'users' => $group->map(function ($reaction) {
+                            return [
+                                'id' => $reaction->user_id,
+                                'name' => $reaction->user->name,
+                            ];
+                        })->values(),
+                        'hasReacted' => $group->contains('user_id', Auth::id()),
+                    ];
+                })
+                ->values();
+        });
     }
 }

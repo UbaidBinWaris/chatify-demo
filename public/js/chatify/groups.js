@@ -215,6 +215,9 @@ function openGroupChat(groupId) {
     loadGroupInfo(groupId);
     loadGroupMessages(groupId);
     
+    // Subscribe to group channel for real-time updates
+    subscribeToGroupChannel(groupId);
+    
     // On mobile, we might want to hide the list view, but typically Chatify handles this via CSS
     if($(window).width() < 768) {
         $('.messenger-listView').hide();
@@ -224,6 +227,58 @@ function openGroupChat(groupId) {
     setTimeout(() => {
         isOpeningGroup = false;
     }, 500);
+}
+
+/**
+ * Subscribe to group channel for real-time reactions and messages
+ */
+let currentGroupChannel = null;
+
+function subscribeToGroupChannel(groupId) {
+    if (typeof pusher === 'undefined') {
+        console.warn('Pusher not available for group channel subscription');
+        return;
+    }
+    
+    // Unsubscribe from previous group channel if exists
+    if (currentGroupChannel) {
+        console.log('Unsubscribing from previous group channel:', currentGroupChannel.name);
+        pusher.unsubscribe(currentGroupChannel.name);
+        currentGroupChannel = null;
+    }
+    
+    // Subscribe to this group's channel
+    const channelName = `private-group.${groupId}`;
+    console.log('Subscribing to group channel:', channelName);
+    
+    currentGroupChannel = pusher.subscribe(channelName);
+    
+    // Listen for reaction updates
+    currentGroupChannel.bind('message.reaction.updated', function(data) {
+        console.log('Group reaction update received:', data);
+        
+        if (typeof MessageReactions !== 'undefined' && MessageReactions.handleReactionUpdate) {
+            MessageReactions.handleReactionUpdate(data);
+        } else {
+            // Fallback: manually update reactions
+            const messageId = data.message_id;
+            const reactions = data.reactions;
+            
+            if (typeof updateMessageReactions === 'function') {
+                updateMessageReactions(messageId, reactions);
+            } else if (typeof MessageReactions !== 'undefined' && MessageReactions.updateMessageReactions) {
+                MessageReactions.updateMessageReactions(messageId, reactions);
+            }
+        }
+    });
+    
+    currentGroupChannel.bind('pusher:subscription_succeeded', function() {
+        console.log('Successfully subscribed to group channel:', channelName);
+    });
+    
+    currentGroupChannel.bind('pusher:subscription_error', function(status) {
+        console.error('Group channel subscription error:', status);
+    });
 }
 
 /**
@@ -430,6 +485,13 @@ function sendGroupMessage() {
                         groupMessageCard(response.message, true)
                     );
                     scrollToBottom(messagesContainer);
+                    
+                    // Ensure reaction container is ready for new message
+                    setTimeout(function() {
+                        if (typeof MessageReactions !== 'undefined' && response.message && response.message.id) {
+                            console.log('Group message sent, reaction container ready for:', response.message.id);
+                        }
+                    }, 100);
                 }
             },
             error: function(xhr, status, error) {

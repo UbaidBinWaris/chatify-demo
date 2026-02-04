@@ -56,6 +56,7 @@ Route::group(['prefix' => 'chatify', 'middleware' => ['web', 'auth']], function 
     // Message Reactions Routes
     Route::post('/reactions/toggle', [App\Http\Controllers\MessageReactionController::class, 'toggle'])->name('reactions.toggle');
     Route::get('/reactions/{messageId}', [App\Http\Controllers\MessageReactionController::class, 'getReactions'])->name('reactions.get');
+    Route::post('/reactions/batch', [App\Http\Controllers\MessageReactionController::class, 'getBatchReactions'])->name('reactions.batch');
     Route::get('/reactions/frequent/emojis', [App\Http\Controllers\MessageReactionController::class, 'getFrequentEmojis'])->name('reactions.frequent');
     Route::get('/reactions/all/emojis', [App\Http\Controllers\MessageReactionController::class, 'getAllEmojis'])->name('reactions.all');
 });

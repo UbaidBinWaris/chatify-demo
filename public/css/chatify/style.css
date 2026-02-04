@@ -1545,4 +1545,30 @@ div.loadingPlaceholder-date {
 .message-card {
   position: relative;
 }
+
+/* Real-time update animation */
+@keyframes reactionPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.message-reactions-container.reaction-updated .reaction-bubble {
+  animation: reactionPulse 0.3s ease-in-out;
+}
+
+/* Optimistic update styling */
+.reaction-bubble.optimistic {
+  opacity: 0.7;
+}
+
+.reaction-bubble.optimistic .reaction-bubble-count {
+  font-style: italic;
+}
 "" 
