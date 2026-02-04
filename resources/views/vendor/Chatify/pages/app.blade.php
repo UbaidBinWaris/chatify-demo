@@ -125,4 +125,5 @@
 
 @include('Chatify::layouts.modals')
 @include('Chatify::layouts.groupModals')
+@include('Chatify::layouts.reactionPicker')
 @include('Chatify::layouts.footerLinks')

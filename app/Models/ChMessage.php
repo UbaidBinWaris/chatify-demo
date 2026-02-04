@@ -38,6 +38,11 @@ class ChMessage extends Model
         return $this->belongsTo(Group::class, 'group_id');
     }
 
+    public function reactions()
+    {
+        return $this->hasMany(MessageReaction::class, 'message_id');
+    }
+
     public function isGroupMessage()
     {
         return !is_null($this->group_id);

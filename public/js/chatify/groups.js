@@ -298,6 +298,11 @@ function loadGroupMessages(groupId) {
                 
                 messagesElement.html(messagesHtml);
                 
+                // Load reactions for group messages
+                if (typeof MessageReactions !== 'undefined') {
+                    MessageReactions.loadReactionsForMessages();
+                }
+                
                 // Ensure messaging view and messages stay visible
                 $('.messenger-messagingView').css('display', 'flex').show();
                 $('.messenger-sendCard').show();
@@ -357,6 +362,12 @@ function groupMessageCard(message, isOwn) {
                         <span class="time">${message.created_at}</span>
                     </sub>
                 </div>
+                <div class="message-reactions-container" data-message-id="${message.id}">
+                    <div class="message-reactions-display"></div>
+                </div>
+            </div>
+            <div class="reaction-trigger" data-message-id="${message.id}">
+                <i class="far fa-smile"></i>
             </div>
         </div>
     `;

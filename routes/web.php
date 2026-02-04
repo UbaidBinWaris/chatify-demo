@@ -52,6 +52,12 @@ Route::group(['prefix' => 'chatify', 'middleware' => ['web', 'auth']], function 
     Route::post('/favorites', [App\Http\Controllers\OptimizedMessagesController::class, 'getFavorites']);
     Route::post('/favorite', [App\Http\Controllers\OptimizedMessagesController::class, 'favorite']);
     Route::post('/shared', [App\Http\Controllers\OptimizedMessagesController::class, 'sharedPhotos']);
+    
+    // Message Reactions Routes
+    Route::post('/reactions/toggle', [App\Http\Controllers\MessageReactionController::class, 'toggle'])->name('reactions.toggle');
+    Route::get('/reactions/{messageId}', [App\Http\Controllers\MessageReactionController::class, 'getReactions'])->name('reactions.get');
+    Route::get('/reactions/frequent/emojis', [App\Http\Controllers\MessageReactionController::class, 'getFrequentEmojis'])->name('reactions.frequent');
+    Route::get('/reactions/all/emojis', [App\Http\Controllers\MessageReactionController::class, 'getAllEmojis'])->name('reactions.all');
 });
 
 // Override Chatify setActiveStatus

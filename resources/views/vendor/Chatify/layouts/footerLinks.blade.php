@@ -18,6 +18,7 @@
 <script src="{{ asset('js/chatify/voice-recorder.js') }}"></script>
 <script src="{{ asset('js/chatify/code.js') }}"></script>
 <script src="{{ asset('js/chatify/groups.js') }}"></script>
+<script src="{{ asset('js/chatify/reactions.js') }}"></script>
 @if(env('APP_DEBUG', false))
 <script src="{{ asset('js/chatify/voice-recorder-tests.js') }}"></script>
 @endif

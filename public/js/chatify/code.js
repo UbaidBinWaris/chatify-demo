@@ -627,6 +627,10 @@ function fetchMessages(id, newFetch = false) {
         }
         // trigger seen event
         makeSeen(true);
+        // Load reactions for messages
+        if (typeof MessageReactions !== 'undefined') {
+          MessageReactions.loadReactionsForMessages();
+        }
         // Pagination lock & messages page
         noMoreMessages = messagesPage >= data?.last_page;
         if (!noMoreMessages) messagesPage += 1;

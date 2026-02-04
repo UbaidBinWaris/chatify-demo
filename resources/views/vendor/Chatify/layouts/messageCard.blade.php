@@ -55,5 +55,15 @@ $timeAndSeen = "<span data-time='$created_at' class='message-time'>
             </div>
         </div>
         @endif
+        
+        {{-- Message Reactions --}}
+        <div class="message-reactions-container" data-message-id="{{ $id }}">
+            <div class="message-reactions-display"></div>
+        </div>
+    </div>
+    
+    {{-- Reaction Picker --}}
+    <div class="reaction-trigger" data-message-id="{{ $id }}">
+        <i class="far fa-smile"></i>
     </div>
 </div>
