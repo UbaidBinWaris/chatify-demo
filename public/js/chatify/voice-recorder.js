@@ -193,12 +193,27 @@ class VoiceRecorder {
             this.slideToCancel.style.display = 'none';
         }
         if (this.recordingActions) {
-            this.recordingActions.classList.add('locked-mode');
+            // Fix visibility: Remove 'hidden' and ensure 'flex' display
+            this.recordingActions.classList.remove('hidden');
+            this.recordingActions.classList.add('flex');
+            
+            // Re-bind click handlers to ensure they work
+            const cancelBtn = this.recordingActions.querySelector('.recording-cancel-btn');
+            const sendBtn = this.recordingActions.querySelector('.recording-send-btn');
+            
+            // Remove old listeners to avoid duplicates
+            const newCancel = cancelBtn.cloneNode(true);
+            const newSend = sendBtn.cloneNode(true);
+            cancelBtn.parentNode.replaceChild(newCancel, cancelBtn);
+            sendBtn.parentNode.replaceChild(newSend, sendBtn);
+            
+            newCancel.onclick = () => this.cancelRecording();
+            // Send Immediately when clicking SEND in locked mode
+            newSend.onclick = () => this.stopRecording(true); 
         }
         
         // Visual feedback on button
-        this.recordBtn.classList.remove('recording-active'); // Stop pulsing the main button?
-        // Or keep it pulsing to show recording is active.
+        this.recordBtn.classList.remove('recording-active'); // Stop pulsing the main button
     }
 
     async startRecording() {
@@ -222,6 +237,7 @@ class VoiceRecorder {
             }
             
             this.audioChunks = [];
+            this.shouldSendImmediately = false; // Reset state
 
             this.mediaRecorder.ondataavailable = (e) => {
                 if (e.data.size > 0) this.audioChunks.push(e.data);
@@ -294,7 +310,8 @@ class VoiceRecorder {
         }
     }
 
-    stopRecording() {
+    stopRecording(sendImmediately = false) {
+        this.shouldSendImmediately = sendImmediately;
         if (this.mediaRecorder && this.isRecording) {
             this.mediaRecorder.stop();
             // Cleanup happens in onstop -> handleRecordingComplete -> cleanup
@@ -315,6 +332,7 @@ class VoiceRecorder {
     cleanupRecordingState(isCancelled = false) {
         this.isRecording = false;
         this.isLocked = false;
+        this.shouldSendImmediately = false;
         
         if (this.rafId) cancelAnimationFrame(this.rafId);
         // Do NOT close AudioContext globally if you want to reuse it, but closing input source is good
@@ -340,18 +358,28 @@ class VoiceRecorder {
         const mimeType = this.getSupportedMimeType() || 'audio/webm';
         this.recordedBlob = new Blob(this.audioChunks, { type: mimeType });
         
-        // Cleanup UI/Stream
+        // Capture intention before cleanup resets it
+        const sendNow = this.shouldSendImmediately;
+        
+        // Cleanup UI/Stream (Resets shouldSendImmediately to false)
         this.cleanupRecordingState(false);
         
-        // Show Preview
-        this.showAudioPreview();
-        
-        // TODO: Auto-send if it was a "Hold & Release" action?
-        // User asked for "sending... same as whatsapp". WhatsApp sends on release.
-        // But code.js expects a click on send button.
-        // We can simulate it?
-        // Let's stick to Preview for now as it's safer for a web app without 100% confidence in the recording quality.
-        // To mimic WhatsApp completely, we would trigger send immediately.
+        if (sendNow) {
+            console.log('Attempting immediate send...');
+            // Immediate Send (Locked mode send)
+            // Trigger the global sendMessage function from code.js
+             if (typeof sendMessage === 'function') {
+                 // The sendMessage function checks window.voiceRecorder.hasRecordedAudio()
+                 // So we just need to call it.
+                 sendMessage();
+             } else {
+                 console.error('sendMessage function not found, falling back to preview.');
+                 this.showAudioPreview();
+             }
+        } else {
+            // Show Preview (Default / Hold-Release behavior)
+            this.showAudioPreview();
+        }
     }
 
     // Helper: Mime Check
@@ -375,6 +403,9 @@ class VoiceRecorder {
             this.slideToCancel.style.display = 'flex';
         }
         if (this.recordingActions) {
+            // Ensure actions are hidden initially (until locked)
+            this.recordingActions.classList.add('hidden');
+            this.recordingActions.classList.remove('flex');
             this.recordingActions.classList.remove('locked-mode');
         }
         this.recordBtn.classList.add('recording-active');
@@ -397,6 +428,13 @@ class VoiceRecorder {
         }
         if (this.lockIndicator) this.lockIndicator.classList.remove('visible');
         this.recordBtn.classList.remove('recording-active');
+        
+        // Reset Actions Visibility
+        if (this.recordingActions) {
+            this.recordingActions.classList.add('hidden');
+            this.recordingActions.classList.remove('flex');
+        }
+
     }
 
     // Timer
