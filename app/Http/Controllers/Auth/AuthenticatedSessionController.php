@@ -42,17 +42,7 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
-        // Verify that email was verified via OTP
-        if (!session('verified_email') || session('verification_type') !== 'login') {
-            return redirect()->route('login')->withErrors([
-                'email' => 'Please verify your email first.',
-            ]);
-        }
-
         $request->authenticate();
-
-        // Clear session data
-        session()->forget(['verified_email', 'verification_type', 'verification_id']);
 
         $request->session()->regenerate();
 

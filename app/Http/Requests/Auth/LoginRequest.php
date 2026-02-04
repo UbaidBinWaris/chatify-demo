@@ -41,14 +41,11 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        // Use verified email from session
-        $email = session('verified_email');
-        
-        if (! Auth::attempt(['email' => $email, 'password' => $this->password], $this->boolean('remember'))) {
+        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'password' => trans('auth.failed'),
+                'email' => trans('auth.failed'),
             ]);
         }
 
