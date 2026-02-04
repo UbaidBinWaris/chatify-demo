@@ -3,44 +3,46 @@
     <x-auth-session-status class="mb-4" :status="session('status')" />
 
     <!-- Traditional Login Form -->
-    <form method="POST" action="{{ route('login') }}">
+    <!-- Traditional Login Form -->
+    <form method="POST" action="{{ route('login') }}" class="space-y-6">
         @csrf
 
         <!-- Email Address -->
         <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
+            <label for="email" class="block font-medium text-sm text-gray-300 mb-1">Email</label>
+            <input id="email" class="block mt-1 w-full bg-white/5 border border-white/10 rounded-xl focus:border-violet-500 focus:ring-violet-500 text-gray-200 placeholder-gray-500 transition-colors" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" placeholder="name@example.com" />
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
         </div>
 
         <!-- Password -->
         <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
-            <x-text-input id="password" class="block mt-1 w-full"
+            <label for="password" class="block font-medium text-sm text-gray-300 mb-1">Password</label>
+            <input id="password" class="block mt-1 w-full bg-white/5 border border-white/10 rounded-xl focus:border-violet-500 focus:ring-violet-500 text-gray-200 placeholder-gray-500 transition-colors"
                             type="password"
                             name="password"
-                            required autocomplete="current-password" />
+                            required autocomplete="current-password"
+                            placeholder="••••••••" />
             <x-input-error :messages="$errors->get('password')" class="mt-2" />
         </div>
 
         <!-- Remember Me -->
         <div class="block mt-4">
-            <label for="remember_me" class="inline-flex items-center">
-                <input id="remember_me" type="checkbox" class="rounded dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-indigo-600 shadow-sm focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:focus:ring-offset-gray-800" name="remember">
-                <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">{{ __('Remember me') }}</span>
+            <label for="remember_me" class="inline-flex items-center group cursor-pointer">
+                <input id="remember_me" type="checkbox" class="rounded bg-white/10 border-white/20 text-violet-600 shadow-sm focus:ring-violet-500 transition-colors" name="remember">
+                <span class="ml-2 text-sm text-gray-400 group-hover:text-gray-300 transition-colors">{{ __('Remember me') }}</span>
             </label>
         </div>
 
-        <div class="flex items-center justify-end mt-4">
+        <div class="flex items-center justify-between mt-6">
             @if (Route::has('password.request'))
-                <a class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800" href="{{ route('password.request') }}">
-                    {{ __('Forgot your password?') }}
+                <a class="text-sm text-gray-400 hover:text-violet-400 transition-colors duration-200" href="{{ route('password.request') }}">
+                    {{ __('Forgot password?') }}
                 </a>
             @endif
 
-            <x-primary-button class="ml-3">
+            <button type="submit" class="ml-3 px-6 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold text-sm shadow-lg shadow-violet-600/30 hover:shadow-violet-600/50 hover:scale-105 transition-all duration-300">
                 {{ __('Log in') }}
-            </x-primary-button>
+            </button>
         </div>
     </form>
 
