@@ -36,6 +36,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/{id}', [GroupController::class, 'update'])->name('update');
         Route::delete('/{id}', [GroupController::class, 'destroy'])->name('destroy');
         Route::post('/{id}/members', [GroupController::class, 'addMembers'])->name('addMembers');
+        Route::get('/{id}/members', [GroupController::class, 'getMembers'])->name('getMembers');
         Route::delete('/{groupId}/members/{userId}', [GroupController::class, 'removeMember'])->name('removeMember');
         Route::post('/{id}/messages', [GroupController::class, 'sendMessage'])->name('sendMessage');
         Route::get('/{id}/messages', [GroupController::class, 'getMessages'])->name('getMessages');

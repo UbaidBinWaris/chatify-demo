@@ -171,6 +171,33 @@ class GroupController extends Controller
     }
 
     /**
+     * Get group members for mentions
+     */
+    public function getMembers($id)
+    {
+        $group = Group::findOrFail($id);
+        
+        // Check if user is a member
+        if (!$group->isMember(Auth::id())) {
+            return response()->json(['error' => 'You are not a member of this group'], 403);
+        }
+
+        $members = $group->members->map(function($member) {
+            return [
+                'id' => $member->id,
+                'name' => $member->name,
+                'email' => $member->email,
+                'avatar' => $member->avatar ?? asset('images/default-avatar.png'),
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'members' => $members,
+        ]);
+    }
+
+    /**
      * Remove a member from the group
      */
     public function removeMember($groupId, $userId)
@@ -210,6 +237,7 @@ class GroupController extends Controller
         $request->validate([
             'message' => 'nullable|string',
             'attachment' => 'nullable|file|max:150000',
+            'mentions' => 'nullable|string', // Will be JSON string from frontend
         ]);
 
         // Ensure at least one of message or attachment is present
@@ -222,6 +250,12 @@ class GroupController extends Controller
             $attachmentPath = $request->file('attachment')->store('attachments', 'public');
         }
 
+        // Parse mentions JSON if present
+        $mentions = null;
+        if ($request->mentions) {
+            $mentions = json_decode($request->mentions, true);
+        }
+
         $message = ChMessage::create([
             'id' => Str::uuid(),
             'from_id' => Auth::id(),
@@ -229,6 +263,7 @@ class GroupController extends Controller
             'group_id' => $group->id,
             'body' => $request->message,
             'attachment' => $attachmentPath,
+            'mentions' => $mentions,
         ]);
 
         $message->load('from');
@@ -246,6 +281,7 @@ class GroupController extends Controller
                 'from_avatar' => $message->from->avatar ?? asset('images/default-avatar.png'),
                 'attachment' => $message->attachment ? asset('storage/' . $message->attachment) : null,
                 'created_at' => $message->created_at->diffForHumans(),
+                'mentions' => $message->mentions,
             ]
         ]);
     }

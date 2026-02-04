@@ -215,6 +215,11 @@ function openGroupChat(groupId) {
     loadGroupInfo(groupId);
     loadGroupMessages(groupId);
     
+    // Load group members for mention system
+    if (window.mentionSystem) {
+        window.mentionSystem.loadGroupMembers(groupId);
+    }
+    
     // Subscribe to group channel for real-time updates
     subscribeToGroupChannel(groupId);
     
@@ -406,12 +411,18 @@ function groupMessageCard(message, isOwn) {
         }
     }
     
+    // Highlight mentions in message body
+    let messageBody = message.body || '';
+    if (messageBody && window.mentionSystem) {
+        messageBody = window.mentionSystem.highlightMentionsInMessage(messageBody);
+    }
+    
     return `
         <div class="message-card ${messageClass}" data-id="${message.id}">
             <div class="message-card-content">
                 ${!isOwn ? `<div class="message-sender">${senderName}</div>` : ''}
                 <div class="message">
-                    ${message.body || ''}
+                    ${messageBody}
                     ${attachmentHtml}
                     <sub>
                         <span class="time">${message.created_at}</span>
@@ -463,6 +474,14 @@ function sendGroupMessage() {
         // Add message text (empty string if only voice message)
         formData.append('message', inputValue || '');
         formData.append('_token', csrfToken);
+        
+        // Extract and add mentions if available
+        if (window.mentionSystem) {
+            const mentions = window.mentionSystem.extractMentions();
+            if (mentions.length > 0) {
+                formData.append('mentions', JSON.stringify(mentions));
+            }
+        }
         
         $.ajax({
             url: `/groups/${groupId}/messages`,

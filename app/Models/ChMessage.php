@@ -17,10 +17,12 @@ class ChMessage extends Model
         'body',
         'attachment',
         'seen',
+        'mentions',
     ];
 
     protected $casts = [
         'seen' => 'boolean',
+        'mentions' => 'array',
     ];
 
     public function from()
