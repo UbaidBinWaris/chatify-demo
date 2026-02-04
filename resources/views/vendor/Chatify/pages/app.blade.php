@@ -20,6 +20,10 @@
                 <a href="#" class="active-tab" data-view="users">
                     <span class="far fa-user"></span> Contacts
                 </a>
+                <a href="#" data-view="friendRequests">
+                    <span class="fas fa-user-plus"></span> Requests
+                    <span id="friend-requests-badge" class="badge" style="display: none;">0</span>
+                </a>
                 <a href="#" data-view="groups">
                     <span class="fas fa-users"></span> Groups
                 </a>
@@ -48,6 +52,13 @@
                 <p class="messenger-title"><span>Search</span></p>
                 <div class="search-records">
                     <p class="message-hint center-el"><span>Type to search..</span></p>
+                </div>
+             </div>
+             {{-- ---------------- [ Friend Requests Tab ] ---------------- --}}
+           <div class="messenger-tab friend-requests-tab app-scroll" data-view="friendRequests">
+                <p class="messenger-title"><span>Friend Requests</span></p>
+                <div id="pending-friend-requests" style="width: 100%;">
+                    <p class="message-hint center-el"><span>No pending requests</span></p>
                 </div>
              </div>
              {{-- ---------------- [ Groups Tab ] ---------------- --}}
@@ -127,3 +138,5 @@
 @include('Chatify::layouts.groupModals')
 @include('Chatify::layouts.reactionPicker')
 @include('Chatify::layouts.footerLinks')
+{{-- Friendship Script --}}
+<script src="{{ asset('js/chatify/friendships.js') }}"></script>

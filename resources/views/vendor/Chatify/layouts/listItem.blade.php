@@ -70,7 +70,7 @@ $lastMessageBody = strlen($lastMessageBody) > 30 ? mb_substr($lastMessageBody, 0
 
 {{-- -------------------- Search Item -------------------- --}}
 @if($get == 'search_item')
-<table class="messenger-list-item" data-contact="{{ $user->id }}">
+<table class="messenger-list-item {{ isset($friendshipStatus) && $friendshipStatus == 'friends' ? '' : 'search-item-no-click' }}" data-contact="{{ $user->id }}" data-friendship-status="{{ $friendshipStatus ?? 'none' }}">
     <tr data-action="0">
         {{-- Avatar side --}}
         <td>
@@ -82,8 +82,33 @@ $lastMessageBody = strlen($lastMessageBody) > 30 ? mb_substr($lastMessageBody, 0
         <td>
             <p data-id="{{ $user->id }}" data-type="user">
             {{ strlen($user->name) > 12 ? trim(substr($user->name,0,12)).'..' : $user->name }}
+            </p>
         </td>
-
+        {{-- Action buttons based on friendship status --}}
+        <td style="text-align: right; padding-right: 10px;">
+            @if(isset($friendshipStatus))
+                @if($friendshipStatus == 'friends')
+                    <span class="friendship-badge" style="color: #4caf50; font-size: 12px;">
+                        <i class="fas fa-check-circle"></i> Friends
+                    </span>
+                @elseif($friendshipStatus == 'request_sent')
+                    <button class="btn-friend-action btn-cancel-request" data-user-id="{{ $user->id }}" style="padding: 5px 10px; font-size: 12px; background: #999; border: none; color: white; border-radius: 4px; cursor: pointer;">
+                        <i class="fas fa-clock"></i> Pending
+                    </button>
+                @elseif($friendshipStatus == 'request_received')
+                    <button class="btn-friend-action btn-accept-request" data-user-id="{{ $user->id }}" style="padding: 5px 10px; font-size: 12px; background: #4caf50; border: none; color: white; border-radius: 4px; cursor: pointer; margin-right: 5px;">
+                        <i class="fas fa-check"></i> Accept
+                    </button>
+                    <button class="btn-friend-action btn-reject-request" data-user-id="{{ $user->id }}" style="padding: 5px 10px; font-size: 12px; background: #f44336; border: none; color: white; border-radius: 4px; cursor: pointer;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                @else
+                    <button class="btn-friend-action btn-send-request" data-user-id="{{ $user->id }}" style="padding: 5px 10px; font-size: 12px; background: #2196F3; border: none; color: white; border-radius: 4px; cursor: pointer;">
+                        <i class="fas fa-user-plus"></i> Add Friend
+                    </button>
+                @endif
+            @endif
+        </td>
     </tr>
 </table>
 @endif

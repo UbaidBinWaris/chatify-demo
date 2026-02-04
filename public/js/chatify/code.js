@@ -1610,6 +1610,14 @@ $(document).ready(function () {
       return;
     }
     
+    // Check if this is a search item and not friends yet
+    if ($(this).hasClass('search-item-no-click')) {
+      const friendshipStatus = $(this).data('friendship-status');
+      if (friendshipStatus !== 'friends') {
+        return false; // Prevent opening chat
+      }
+    }
+    
     if ($(this).find("tr[data-action]").attr("data-action") == "1") {
       $(".messenger-listView").hide();
     }

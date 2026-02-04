@@ -42,6 +42,19 @@ Route::middleware('auth')->group(function () {
         Route::get('/{id}/messages', [GroupController::class, 'getMessages'])->name('getMessages');
         Route::get('/search/users', [GroupController::class, 'searchUsers'])->name('searchUsers');
     });
+    
+    // Friendship routes
+    Route::prefix('friendships')->name('friendships.')->group(function () {
+        Route::post('/send', [App\Http\Controllers\FriendshipController::class, 'sendRequest'])->name('send');
+        Route::post('/{id}/accept', [App\Http\Controllers\FriendshipController::class, 'acceptRequest'])->name('accept');
+        Route::post('/{id}/reject', [App\Http\Controllers\FriendshipController::class, 'rejectRequest'])->name('reject');
+        Route::delete('/{id}/cancel', [App\Http\Controllers\FriendshipController::class, 'cancelRequest'])->name('cancel');
+        Route::delete('/{id}/remove', [App\Http\Controllers\FriendshipController::class, 'removeFriend'])->name('remove');
+        Route::get('/pending', [App\Http\Controllers\FriendshipController::class, 'getPendingRequests'])->name('pending');
+        Route::get('/sent', [App\Http\Controllers\FriendshipController::class, 'getSentRequests'])->name('sent');
+        Route::get('/friends', [App\Http\Controllers\FriendshipController::class, 'getFriends'])->name('friends');
+        Route::get('/status/{userId}', [App\Http\Controllers\FriendshipController::class, 'getStatus'])->name('status');
+    });
 });
 
 

@@ -94,6 +94,7 @@ class OptimizedMessagesController extends MessagesController
      * - Pagination enabled (20 per page)
      * - Lazy loading for better performance
      * - Query optimization with indexes
+     * - Friendship validation for user messages
      *
      * @param Request $request
      * @return JsonResponse
@@ -104,6 +105,20 @@ class OptimizedMessagesController extends MessagesController
             $id = $request->input('id');
             $page = $request->input('page', 1);
             $perPage = $request->input('per_page', $this->perPage);
+            
+            // Check friendship for user messages (not groups)
+            if ($id && is_numeric($id)) {
+                $currentUser = Auth::user();
+                if (!$currentUser->isFriendWith($id)) {
+                    return Response::json([
+                        'error' => 'You must be friends with this user to view messages.',
+                        'messages' => '<p class="message-hint center-el"><span>You must be friends to chat</span></p>',
+                        'total' => 0,
+                        'last_page' => 1,
+                        'current_page' => 1,
+                    ], 403);
+                }
+            }
             
             // Optimized query
             $query = Chatify::fetchMessagesQuery($id)->latest();
@@ -186,10 +201,15 @@ class OptimizedMessagesController extends MessagesController
                 ->paginate($perPage);
             
             $getRecords = '';
+            $currentUser = Auth::user();
             foreach ($records->items() as $record) {
+                // Get friendship status
+                $friendshipStatus = $currentUser->getFriendshipStatus($record->id);
+                
                 $getRecords .= view('Chatify::layouts.listItem', [
                     'get' => 'search_item',
                     'user' => Chatify::getUserWithAvatar($record),
+                    'friendshipStatus' => $friendshipStatus,
                 ])->render();
             }
             
@@ -319,5 +339,38 @@ class OptimizedMessagesController extends MessagesController
                 'shared' => '<p class="message-hint"><span>Error loading photos</span></p>',
             ], 500);
         }
+    }
+
+    /**
+     * Send a new message with friendship validation
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function send(Request $request)
+    {
+        $request->validate([
+            'id' => 'required',
+            'message' => 'nullable|string',
+            'attachment' => 'nullable|file',
+        ]);
+
+        $receiverId = $request->input('id');
+        $currentUser = Auth::user();
+
+        // Check if trying to send to a user (not a group)
+        // Groups don't need friendship validation
+        if (!$request->has('type') || $request->input('type') !== 'group') {
+            // Check if users are friends
+            if (!$currentUser->isFriendWith($receiverId)) {
+                return Response::json([
+                    'error' => 'You must be friends with this user to send messages.',
+                    'message' => 'Please send a friend request first.',
+                ], 403);
+            }
+        }
+
+        // Call parent send method if validation passes
+        return parent::send($request);
     }
 }
