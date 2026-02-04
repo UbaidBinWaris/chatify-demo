@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('message_reactions', function (Blueprint $table) {
             $table->id();
             $table->uuid('message_id');
-            $table->bigInteger('user_id');
+            $table->unsignedBigInteger('user_id');
             $table->string('emoji', 10); // Stores the emoji (e.g., "👍", "❤️", "😂")
             $table->timestamps();
             
