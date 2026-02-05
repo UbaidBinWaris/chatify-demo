@@ -1,14 +1,14 @@
 <div class="messenger-sendCard">
     <form id="message-form" method="POST" action="{{ route('send.message') }}" enctype="multipart/form-data">
         @csrf
-        <label><span class="fas fa-plus-circle"></span><input disabled='disabled' type="file" class="upload-attachment" name="file" accept=".{{implode(', .',config('chatify.attachments.allowed_images'))}}, .{{implode(', .',config('chatify.attachments.allowed_files'))}}, .{{implode(', .',config('chatify.attachments.allowed_audio'))}}" /></label>
+        <label><span class="fas fa-plus-circle"></span><input type="file" class="upload-attachment" name="file" accept=".{{implode(', .',config('chatify.attachments.allowed_images'))}}, .{{implode(', .',config('chatify.attachments.allowed_files'))}}, .{{implode(', .',config('chatify.attachments.allowed_audio'))}" /></label>
         <button class="emoji-button"></span><span class="fas fa-smile"></button>
-        <textarea readonly='readonly' name="message" class="m-send app-scroll" placeholder="Type a message.."></textarea>
+        <textarea name="message" class="m-send app-scroll" placeholder="Type a message.."></textarea>
         {{-- Voice Record Button --}}
         <button type="button" class="voice-record-button relative z-50 text-xl text-[var(--primary-color)] p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none" id="voice-record-btn">
             <span class="fas fa-microphone"></span>
         </button>
-        <button disabled='disabled' class="send-button"><span class="fas fa-paper-plane"></span></button>
+        <button class="send-button"><span class="fas fa-paper-plane"></span></button>
     </form>
     
     {{-- Voice Recording Interface (Tailwind Styled) --}}
