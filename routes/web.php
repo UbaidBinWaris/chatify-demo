@@ -60,7 +60,7 @@ Route::middleware('auth')->group(function () {
 
 // Optimized Chatify Routes Override
 Route::group(['prefix' => 'chatify', 'middleware' => ['web', 'auth']], function () {
-    Route::post('/getContacts', [App\Http\Controllers\OptimizedMessagesController::class, 'getContacts']);
+    Route::get('/getContacts', [App\Http\Controllers\OptimizedMessagesController::class, 'getContacts']);
     Route::post('/fetchMessages', [App\Http\Controllers\OptimizedMessagesController::class, 'fetch']);
     Route::get('/search', [App\Http\Controllers\OptimizedMessagesController::class, 'search']);
     Route::post('/favorites', [App\Http\Controllers\OptimizedMessagesController::class, 'getFavorites']);

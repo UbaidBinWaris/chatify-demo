@@ -94,7 +94,7 @@ class OptimizedMessagesController extends MessagesController
      * - Pagination enabled (20 per page)
      * - Lazy loading for better performance
      * - Query optimization with indexes
-     * - Friendship validation for user messages
+     * - Removed strict friendship validation to allow viewing existing conversations
      *
      * @param Request $request
      * @return JsonResponse
@@ -106,19 +106,9 @@ class OptimizedMessagesController extends MessagesController
             $page = $request->input('page', 1);
             $perPage = $request->input('per_page', $this->perPage);
             
-            // Check friendship for user messages (not groups)
-            if ($id && is_numeric($id)) {
-                $currentUser = Auth::user();
-                if (!$currentUser->isFriendWith($id)) {
-                    return Response::json([
-                        'error' => 'You must be friends with this user to view messages.',
-                        'messages' => '<p class="message-hint center-el"><span>You must be friends to chat</span></p>',
-                        'total' => 0,
-                        'last_page' => 1,
-                        'current_page' => 1,
-                    ], 403);
-                }
-            }
+            // Note: Friendship validation removed for fetching messages
+            // Users can view existing conversation history
+            // New message sending is still protected by friendship requirement
             
             // Optimized query
             $query = Chatify::fetchMessagesQuery($id)->latest();
