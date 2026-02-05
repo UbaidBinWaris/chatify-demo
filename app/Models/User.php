@@ -22,6 +22,9 @@ class User extends Authenticatable
         'email',
         'password',
         'last_seen_at',
+        'timezone',
+        'detected_timezone',
+        'last_ip',
     ];
 
     /**

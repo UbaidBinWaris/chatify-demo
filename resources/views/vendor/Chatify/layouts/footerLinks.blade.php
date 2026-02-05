@@ -14,6 +14,7 @@
     };
     window.chatify.allAllowedExtensions = chatify.allowedImages.concat(chatify.allowedFiles).concat(chatify.allowedAudio);
 </script>
+<script src="{{ asset('js/timezone-handler.js') }}"></script>
 <script src="{{ asset('js/chatify/utils.js') }}"></script>
 <script src="{{ asset('js/chatify/voice-recorder.js') }}"></script>
 <script src="{{ asset('js/chatify/code.js') }}"></script>

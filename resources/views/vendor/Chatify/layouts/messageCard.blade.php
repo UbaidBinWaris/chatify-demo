@@ -1,6 +1,7 @@
 <?php
 $seenIcon = (!!$seen ? 'check-double' : 'check');
-$timeAndSeen = "<span data-time='$created_at' class='message-time'>
+$timeFormatted = $timeFormatted ?? '';
+$timeAndSeen = "<span data-time='$created_at' data-timestamp='".($timestamp ?? '')."' class='message-time' title='{$timeFormatted}'>
         ".($isSender ? "<span class='fas fa-$seenIcon' seen'></span>" : '' )." <span class='time'>$timeAgo</span>
     </span>";
 ?>

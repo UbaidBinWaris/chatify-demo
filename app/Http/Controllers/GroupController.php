@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Pusher\Pusher;
+use App\Services\TimezoneService;
 
 class GroupController extends Controller
 {
@@ -44,6 +45,10 @@ class GroupController extends Controller
                     }
                 }
                 
+                $timezone = Auth::user()->timezone ?? 'UTC';
+                $groupTime = TimezoneService::getTimeDisplay($group->created_at, $timezone);
+                $lastMsgTime = $lastMsg ? TimezoneService::getTimeDisplay($lastMsg->created_at, $timezone) : null;
+                
                 return [
                     'id' => $group->id,
                     'name' => $group->name,
@@ -51,9 +56,12 @@ class GroupController extends Controller
                     'description' => $group->description,
                     'created_by' => $group->creator->name,
                     'members_count' => $group->members->count(),
-                    'created_at' => $group->created_at->diffForHumans(),
+                    'created_at' => $groupTime['relative'],
+                    'created_at_formatted' => $groupTime['formatted'],
+                    'created_at_timestamp' => $groupTime['timestamp'],
                     'last_message' => $messagePreview,
-                    'last_message_time' => $lastMsg ? $lastMsg->created_at->diffForHumans() : null,
+                    'last_message_time' => $lastMsgTime ? $lastMsgTime['relative'] : null,
+                    'last_message_time_formatted' => $lastMsgTime ? $lastMsgTime['formatted'] : null,
                     'last_message_sender' => $senderName
                 ];
             })
@@ -271,6 +279,9 @@ class GroupController extends Controller
         // Broadcast to all group members via Pusher
         $this->broadcastGroupMessage($group, $message);
 
+        $timezone = Auth::user()->timezone ?? 'UTC';
+        $timeDisplay = TimezoneService::getTimeDisplay($message->created_at, $timezone);
+
         return response()->json([
             'success' => true,
             'message' => [
@@ -280,7 +291,9 @@ class GroupController extends Controller
                 'from_name' => $message->from->name,
                 'from_avatar' => $message->from->avatar ?? asset('images/default-avatar.png'),
                 'attachment' => $message->attachment ? asset('storage/' . $message->attachment) : null,
-                'created_at' => $message->created_at->diffForHumans(),
+                'created_at' => $timeDisplay['relative'],
+                'created_at_formatted' => $timeDisplay['formatted'],
+                'timestamp' => $timeDisplay['timestamp'],
                 'mentions' => $message->mentions,
             ]
         ]);
@@ -364,7 +377,7 @@ class GroupController extends Controller
                     ($message->body ? e($message->body) : '') .
                     $attachmentHtml .
                     '<sub>
-                        <span class="time">' . $message->created_at->diffForHumans() . '</span>
+                        <span class="time" title="' . TimezoneService::formatForUser($message->created_at, Auth::user()->timezone ?? 'UTC', 'M d, Y g:i A') . '">' . TimezoneService::getTimeDisplay($message->created_at, Auth::user()->timezone ?? 'UTC')['relative'] . '</span>
                     </sub>
                 </div>
             </div>
@@ -388,15 +401,20 @@ class GroupController extends Controller
             ->oldest('created_at')
             ->get();
 
+        $timezone = Auth::user()->timezone ?? 'UTC';
+
         return response()->json([
-            'messages' => $messages->map(function($message) {
+            'messages' => $messages->map(function($message) use ($timezone) {
+                $timeDisplay = TimezoneService::getTimeDisplay($message->created_at, $timezone);
                 return [
                     'id' => $message->id,
                     'from_id' => $message->from_id,
                     'group_id' => $message->group_id,
                     'body' => $message->body,
                     'attachment' => $message->attachment ? asset('storage/' . $message->attachment) : null,
-                    'created_at' => $message->created_at->diffForHumans(),
+                    'created_at' => $timeDisplay['relative'],
+                    'created_at_formatted' => $timeDisplay['formatted'],
+                    'timestamp' => $timeDisplay['timestamp'],
                     'from' => [
                         'id' => $message->from->id,
                         'name' => $message->from->name,

@@ -11,7 +11,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Override Chatify Messenger with our custom implementation
+        $this->app->singleton(\Chatify\ChatifyMessenger::class, function ($app) {
+            return new \App\Services\ChatifyMessengerOverride();
+        });
     }
 
     /**

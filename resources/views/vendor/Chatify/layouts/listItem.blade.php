@@ -38,12 +38,16 @@ $lastMessageBody = strlen($lastMessageBody) > 30 ? mb_substr($lastMessageBody, 0
         <td>
         <p data-id="{{ $user->id }}" data-type="user">
             {{ strlen($user->name) > 12 ? trim(substr($user->name,0,12)).'..' : $user->name }}
-            <span class="contact-item-time" data-time="{{$lastMessage->created_at}}">{{ $lastMessage->timeAgo }}</span>
+            <span class="contact-item-time" data-time="{{$lastMessage->created_at}}" title="{{ $lastMessage->timeFormatted ?? '' }}">{{ $lastMessage->timeAgo }}</span>
         </p>
         @if($user->active_status)
              <p class="user-status-text" data-status="online" style="font-size: 10px; color: #4caf50; margin: 0;">Active Now</p>
         @elseif($user->last_seen_at)
-             <p class="user-status-text" data-status="offline" data-last-seen="{{ $user->last_seen_at }}" style="font-size: 10px; color: #999; margin: 0;">Last seen {{ \Carbon\Carbon::parse($user->last_seen_at)->diffForHumans() }}</p>
+             <?php
+                $timezone = Auth::user()->timezone ?? 'UTC';
+                $lastSeenTime = \App\Services\TimezoneService::getTimeDisplay($user->last_seen_at, $timezone);
+             ?>
+             <p class="user-status-text" data-status="offline" data-last-seen="{{ $user->last_seen_at }}" title="{{ $lastSeenTime['formatted'] }}" style="font-size: 10px; color: #999; margin: 0;">Last seen {{ $lastSeenTime['relative'] }}</p>
         @endif
         <span>
             {{-- Last Message user indicator --}}
